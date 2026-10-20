@@ -418,15 +418,6 @@ public final class Compat {
         entity.moveTo(x, y, z, yaw, pitch);
     }
 
-    public static double[] cameraPos() {
-        try {
-            net.minecraft.world.phys.Vec3 pos = net.minecraft.client.Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
-            return new double[] {pos.x, pos.y, pos.z};
-        } catch (RuntimeException e) {
-            return null;
-        }
-    }
-
     public static void cancelInterpolation(Entity entity) {
 
     }

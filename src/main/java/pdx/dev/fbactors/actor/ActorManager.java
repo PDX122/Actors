@@ -825,8 +825,8 @@ logCycle(actor, "despawned", "dead-past-linger deathTick=" + deathTick, takeTick
                 // legacy body keeps its live phase.
                 clone.tick();
                 if (actor.sim().usesRecordedBaseline(takeTick)) {
-                    pdx.dev.fbactors.ui.ActorGizmo.snapPreview(clone, actor.take.id,
-                        frame.x(), frame.y(), frame.z(), frame.yRot(), frame.xRot());
+                    Compat.snapTo(clone, frame.x(), frame.y(), frame.z(),
+                        frame.yRot(), frame.xRot());
                     actor.sim().driveRecordedLimbs(clone, takeTick);
                 }
             } else {

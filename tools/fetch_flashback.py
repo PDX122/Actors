@@ -86,20 +86,25 @@ def sha512_of(path: Path) -> str:
     return digest.hexdigest()
 
 
-def fetch(url: str, dest: Path, digest: str) -> None:
+def fetch(url: str, dest: Path, digest: str, attempts: int = 3) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(dest.suffix + ".part")
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=300) as response, open(tmp, "wb") as out:
-        while True:
-            chunk = response.read(1 << 20)
-            if not chunk:
-                break
-            out.write(chunk)
-    if sha512_of(tmp) != digest:
-        tmp.unlink(missing_ok=True)
-        raise SystemExit(f"Checksum mismatch downloading {dest.name}")
-    tmp.replace(dest)
+    # Big files over a long CDN hop corrupt now and then; a checksum-gated
+    # retry beats failing a 15-minute build on one bad download.
+    for attempt in range(1, attempts + 1):
+        request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(request, timeout=300) as response, open(tmp, "wb") as out:
+            while True:
+                chunk = response.read(1 << 20)
+                if not chunk:
+                    break
+                out.write(chunk)
+        if sha512_of(tmp) == digest:
+            tmp.replace(dest)
+            return
+        print(f"checksum mismatch for {dest.name} (attempt {attempt}/{attempts})")
+    tmp.unlink(missing_ok=True)
+    raise SystemExit(f"Checksum mismatch downloading {dest.name} after {attempts} attempts")
 
 
 def main() -> int:

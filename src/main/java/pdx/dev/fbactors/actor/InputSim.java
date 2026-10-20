@@ -612,7 +612,7 @@ this.lastStruckBy = attacker.getUUID();
      */
     public void applyBaseline(ActorClonePlayer clone, ActorFrame frame, int takeTick) {
         if (this.usesRecordedBaseline(takeTick)) {
-            applyRecordedState(this.actor.take.id, clone, frame, recordedVelocity(takeTick));
+            applyRecordedState(clone, frame, recordedVelocity(takeTick));
             this.lastBaselineTick = takeTick;
         }
     }
@@ -993,11 +993,10 @@ this.lastStruckBy = attacker.getUUID();
         // re-snap must not leave the clone and its vehicle disagreeing.
         Entity ridden = clone.getVehicle();
         if (ridden != null) {
-            pdx.dev.fbactors.ui.ActorGizmo.snapPreview(ridden, this.actor.take.id,
-                frame.x(), frame.y(), frame.z(), ridden.getYRot(), ridden.getXRot());
+            Compat.snapTo(ridden, frame.x(), frame.y(), frame.z(),
+                ridden.getYRot(), ridden.getXRot());
         }
-        pdx.dev.fbactors.ui.ActorGizmo.snapPreview(clone, this.actor.take.id,
-            frame.x(), frame.y(), frame.z(), frame.yRot(), frame.xRot());
+        Compat.snapTo(clone, frame.x(), frame.y(), frame.z(), frame.yRot(), frame.xRot());
     }
 
     /**
@@ -1159,8 +1158,7 @@ this.lastStruckBy = attacker.getUUID();
             return;
         }
 
-        pdx.dev.fbactors.ui.ActorGizmo.snapPreview(clone, this.actor.take.id,
-            frame.x(), frame.y(), frame.z(), frame.yRot(), frame.xRot());
+        Compat.snapTo(clone, frame.x(), frame.y(), frame.z(), frame.yRot(), frame.xRot());
 
         // The same velocity the recorded position implies, not zero. This used to
         // clear it outright, on the reasoning that a body teleported somewhere it
@@ -1213,7 +1211,7 @@ this.lastStruckBy = attacker.getUUID();
      * the recorded axes then integrate against the wrong starting velocity. See
      * {@link #recordedVelocity} for why the two must never disagree.
      */
-    private static void applyRecordedState(UUID takeId, ActorClonePlayer clone, ActorFrame frame,
+    private static void applyRecordedState(ActorClonePlayer clone, ActorFrame frame,
                                            Vec3 velocity) {
         // A riding clone's position belongs to its vehicle: vanilla re-seats
         // the passenger from the vehicle every tick, so writing the frame
@@ -1222,8 +1220,8 @@ this.lastStruckBy = attacker.getUUID();
         // below then agrees with where the vehicle carries it.
         Entity vehicle = clone.getVehicle();
         if (vehicle != null) {
-            pdx.dev.fbactors.ui.ActorGizmo.snapPreview(vehicle, takeId,
-                frame.x(), frame.y(), frame.z(), vehicle.getYRot(), vehicle.getXRot());
+            Compat.snapTo(vehicle, frame.x(), frame.y(), frame.z(),
+                vehicle.getYRot(), vehicle.getXRot());
         }
         double snapDx = clone.getX() - frame.x();
         double snapDy = clone.getY() - frame.y();
@@ -1232,8 +1230,7 @@ this.lastStruckBy = attacker.getUUID();
         if (snapDist > 2.0) {
             logSnap(clone, frame, snapDist);
         }
-        pdx.dev.fbactors.ui.ActorGizmo.snapPreview(clone, takeId,
-            frame.x(), frame.y(), frame.z(), frame.yRot(), frame.xRot());
+        Compat.snapTo(clone, frame.x(), frame.y(), frame.z(), frame.yRot(), frame.xRot());
 
         clone.setYHeadRot(frame.yHeadRot());
 
