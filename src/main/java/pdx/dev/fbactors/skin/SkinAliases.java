@@ -43,6 +43,8 @@ public final class SkinAliases {
 
     private final Map<String, SkinId> byLabel = new TreeMap<>();
 
+    private static final int MAX_ALIAS_ENTRIES = 4096;
+
     private final Path directory;
 
 
@@ -226,6 +228,10 @@ public final class SkinAliases {
             for (Map.Entry<String, JsonElement> entry
                     : entries.getAsJsonObject().entrySet()) {
                 try {
+                    if (aliases.byLabel.size() >= MAX_ALIAS_ENTRIES) {
+                        skipped++;
+                        continue;
+                    }
                     JsonElement value = entry.getValue();
                     if (!value.isJsonPrimitive()) {
                         throw new IllegalArgumentException("not a string");
