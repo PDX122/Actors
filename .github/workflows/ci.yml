@@ -62,6 +62,31 @@ jobs:
       - name: Check out
         uses: actions/checkout@v4
 
+      # The proprietary Flashback jars live outside git (see
+      # tools/setup-selfhosted.sh): libs/ for compiling, one set per target
+      # under run-mods/ for the verify gate and game tests. Each job stages
+      # them into its fresh checkout; the repo itself stays clean.
+      - name: Stage proprietary jars
+        shell: bash
+        run: |
+          if [ ! -d "$HOME/fbactors-jars/libs" ]; then
+            echo "::error::~/fbactors-jars missing on this runner - run tools/setup-selfhosted.sh and scp the jars first"
+            exit 1
+          fi
+          cp -r "$HOME/fbactors-jars/libs" ./libs
+          for v in 1.21.1 1.21.4 1.21.5 1.21.8 1.21.10 1.21.11 26.1 26.2 26.3; do
+            mkdir -p "versions/$v/run/mods"
+            cp "$HOME/fbactors-jars/run-mods/$v"/Flashback-*.jar "versions/$v/run/mods/"
+          done
+
+      # The tracked gradle.properties carries Windows JDK paths. Point the
+      # Linux runner at its Temurin installs without touching the file in git.
+      - name: Point Gradle at Linux JDKs
+        shell: bash
+        run: |
+          sed -i 's|^org.gradle.java.home=.*|org.gradle.java.home=/usr/lib/jvm/temurin-25-jdk-amd64|' gradle.properties
+          sed -i 's|^org.gradle.java.installations.paths=.*|org.gradle.java.installations.paths=/usr/lib/jvm/temurin-21-jdk-amd64|' gradle.properties
+
       - name: Build every target
         run: ./gradlew buildAll --offline
         shell: powershell
