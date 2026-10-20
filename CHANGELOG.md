@@ -4,6 +4,11 @@ Take-format versions are the compatibility contract: a take file records the
 version that wrote it, newer builds read older files (migrating where noted),
 and older builds refuse newer files at the version check.
 
+## 0.10.11
+
+- First release built entirely in public CI (Modrinth-fetched dependencies,
+  all nine targets, both test families). No code changes over 0.10.10.
+
 ## Unreleased
 
 - Take format v28: sound cues. Performer-caused `playSound` broadcasts are
