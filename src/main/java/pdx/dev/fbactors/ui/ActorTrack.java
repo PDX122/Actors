@@ -829,14 +829,6 @@ public final class ActorTrack {
         MULTI.select(actor.take.id);
     }
 
-    public static void selectViewport(Actor actor) {
-        if (actor == null) {
-            return;
-        }
-        selected = actor;
-        MULTI.select(actor.take.id);
-    }
-
     private static void toggleSelect(Actor actor) {
         if (actor == null) {
             return;
