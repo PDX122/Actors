@@ -169,6 +169,11 @@ public final class ActorGizmo {
             clearPreview();
             return;
         }
+        if (dragHandle < 0 && popupOpen()) {
+            hoverHandle = -1;
+            clearPreview();
+            return;
+        }
         ActorFrame frame = actor.take.frameAt(tick);
         if (frame == null) {
             clearPreview();
@@ -348,6 +353,15 @@ public final class ActorGizmo {
         previewDy = 0.0;
         previewDz = 0.0;
         previewYaw = 0.0;
+    }
+
+
+    private static boolean popupOpen() {
+        try {
+            return ReplayUI.hasAnyPopupOpen;
+        } catch (RuntimeException | LinkageError e) {
+            return false;
+        }
     }
 
 
