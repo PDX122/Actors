@@ -31,6 +31,9 @@ public final class TakeBundle {
     public static final String EXTENSION = ".fbactors.zip";
 
     private static final int BUNDLE_VERSION = 2;
+    private static final int MAX_BUNDLE_ENTRIES = 8192;
+    private static final int MAX_BUNDLE_ENTRY_BYTES = 256 * 1024 * 1024;
+    private static final long MAX_BUNDLE_TOTAL_BYTES = 512L * 1024L * 1024L;
 
     private TakeBundle() {
     }
@@ -109,11 +112,25 @@ public final class TakeBundle {
 
     public static Bundle readBundle(Path bundleFile) throws IOException {
         Map<String, byte[]> entries = new LinkedHashMap<>();
+        long total = 0L;
         try (ZipInputStream in = new ZipInputStream(Files.newInputStream(bundleFile))) {
             ZipEntry entry;
             while ((entry = in.getNextEntry()) != null) {
                 if (!entry.isDirectory()) {
-                    entries.put(entry.getName(), in.readAllBytes());
+                    if (entries.size() >= MAX_BUNDLE_ENTRIES) {
+                        throw new IOException("Take bundle declares too many entries: "
+                            + bundleFile.getFileName());
+                    }
+                    byte[] data = in.readAllBytes();
+                    if (data.length > MAX_BUNDLE_ENTRY_BYTES) {
+                        throw new IOException("Take bundle entry too large: " + entry.getName());
+                    }
+                    total += data.length;
+                    if (total > MAX_BUNDLE_TOTAL_BYTES) {
+                        throw new IOException("Take bundle too large: "
+                            + bundleFile.getFileName());
+                    }
+                    entries.put(entry.getName(), data);
                 }
             }
         } catch (IOException e) {
@@ -188,8 +205,12 @@ public final class TakeBundle {
     public static Summary importInto(Bundle bundle, UUID replayId) {
         int takes = 0;
         for (ActorTake take : bundle.takes()) {
-            TakeStore.save(replayId, take);
-            FlashbackActors.ACTORS.add(take);
+            ActorTake toSave = take;
+            if (take != null && Files.isRegularFile(TakeStore.pathFor(replayId, take.id))) {
+                toSave = take.copyAs(UUID.randomUUID(), take.name);
+            }
+            TakeStore.save(replayId, toSave);
+            FlashbackActors.ACTORS.add(toSave);
             takes++;
         }
         int gearActors = 0;
