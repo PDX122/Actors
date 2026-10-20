@@ -148,7 +148,9 @@ Four 26.x gotchas: the Gradle daemon must run on JDK 25
 (`org.gradle.java.home`), 26.x ships deobfuscated (identity intermediary, no
 Mojang mappings), 26.x uses plain `implementation` instead of
 `modImplementation`, and Flashback is compiled against a locally slimmed stub
-jar in `libs/` that is not redistributable. Everything version-specific lives
+jar in `libs/` that is not redistributable. Public CI fetches the same pinned
+versions from Modrinth at build time instead of checking jars in. Everything
+version-specific lives
 in `compat/Compat.java` per target; shared source stays version-blind. See
 [CONTRIBUTING.md](CONTRIBUTING.md) for the full rules.
 
