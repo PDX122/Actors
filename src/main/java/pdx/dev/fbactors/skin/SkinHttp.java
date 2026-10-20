@@ -42,6 +42,7 @@ public final class SkinHttp {
 
     private static final int CONNECT_TIMEOUT_MS = 10_000;
     private static final int READ_TIMEOUT_MS = 10_000;
+    private static final int MAX_BODY_BYTES = 8 * 1024 * 1024;
     private static final String USER_AGENT = "flashback-actors";
 
 
@@ -210,7 +211,12 @@ public final class SkinHttp {
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             byte[] buffer = new byte[65536];
             int read;
+            int total = 0;
             while ((read = in.read(buffer)) >= 0) {
+                total += read;
+                if (total > MAX_BODY_BYTES) {
+                    throw new IOException("Response too large");
+                }
                 out.write(buffer, 0, read);
             }
             return out.toByteArray();

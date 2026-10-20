@@ -39,6 +39,8 @@ public final class SkinLibrary {
 
     private final Map<String, SavedSkin> byName = new TreeMap<>();
 
+    private static final int MAX_LIBRARY_ENTRIES = 4096;
+
     private final Path directory;
 
 
@@ -268,6 +270,10 @@ public final class SkinLibrary {
         int skipped = 0;
         for (JsonObject object : objects) {
             try {
+                if (library.byName.size() >= MAX_LIBRARY_ENTRIES) {
+                    skipped++;
+                    continue;
+                }
                 SavedSkin skin = readSkin(object);
                 library.byName.put(skin.name(), skin);
             } catch (RuntimeException e) {

@@ -181,6 +181,25 @@ public final class TakeIO {
      */
     private static final int MAX_FRAMES = 1_000_000;
     private static final int MAX_SMALL_ENTRIES = 200_000;
+    private static final long MAX_FILE_BYTES = 256L * 1024L * 1024L;
+
+    private static String fitUtf(String value) {
+        if (value == null || value.isEmpty()) {
+            return "";
+        }
+        if (value.length() < 20000) {
+            return value;
+        }
+        try {
+            byte[] encoded = value.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            if (encoded.length <= 60000) {
+                return value;
+            }
+        } catch (RuntimeException e) {
+            return "";
+        }
+        return "";
+    }
 
     private static void checkCount(String what, int count, int max) throws IOException {
         if (count < 0 || count > max) {
@@ -244,7 +263,7 @@ public final class TakeIO {
                 // held a plain item - the same convention itemId uses above,
                 // so a take full of unenchanted gear costs two bytes per
                 // entry rather than a fixed string.
-                out.writeUTF(e.nbt() == null ? "" : e.nbt());
+                out.writeUTF(fitUtf(e.nbt()));
             }
 
 out.writeInt(take.hits.size());
@@ -298,8 +317,8 @@ out.writeInt(take.hits.size());
                 out.writeInt(b.x());
                 out.writeInt(b.y());
                 out.writeInt(b.z());
-                out.writeUTF(b.before() == null ? "" : b.before());
-                out.writeUTF(b.after() == null ? "" : b.after());
+                out.writeUTF(fitUtf(b.before()));
+                out.writeUTF(fitUtf(b.after()));
             }
 
             out.writeInt(take.voices.size());
@@ -412,7 +431,7 @@ out.writeInt(take.hits.size());
                 out.writeInt(be.y());
                 out.writeInt(be.z());
                 out.writeUTF(be.type() == null ? "" : be.type());
-                out.writeUTF(be.nbt() == null ? "" : be.nbt());
+                out.writeUTF(fitUtf(be.nbt()));
             }
 
             out.writeInt(take.containers.size());
@@ -425,7 +444,7 @@ out.writeInt(take.hits.size());
                 out.writeInt(ci.slot());
                 out.writeUTF(ci.itemId() == null ? "" : ci.itemId());
                 out.writeInt(ci.count());
-                out.writeUTF(ci.nbt() == null ? "" : ci.nbt());
+                out.writeUTF(fitUtf(ci.nbt()));
             }
 
             out.writeInt(take.miningStates.size());
@@ -620,6 +639,11 @@ private static void writeInput(DataOutputStream out, ActorInput input, int repea
     }
 
     public static ActorTake read(Path path) throws IOException {
+        long fileSize = Files.size(path);
+        if (fileSize < 0 || fileSize > MAX_FILE_BYTES) {
+            throw new IOException("Take file " + path.getFileName()
+                + " declares " + fileSize + " bytes");
+        }
         byte[] raw;
         try {
             raw = Files.readAllBytes(path);
@@ -684,6 +708,7 @@ private static void writeInput(DataOutputStream out, ActorInput input, int repea
             List<ActorEquip> equipment = new ArrayList<>();
             if (version >= 2) {
                 int equipCount = in.readInt();
+                checkCount("equipment", equipCount, MAX_SMALL_ENTRIES);
                 for (int i = 0; i < equipCount; i++) {
                     int tick = in.readInt();
                     byte slot = in.readByte();
@@ -707,6 +732,7 @@ private static void writeInput(DataOutputStream out, ActorInput input, int repea
 List<ActorHit> hits = new ArrayList<>();
             {
                 int hitCount = in.readInt();
+                checkCount("hits", hitCount, MAX_SMALL_ENTRIES);
     for (int i = 0; i < hitCount; i++) {
        hits.add(new ActorHit(in.readInt(), in.readFloat(),
      in.readDouble(), in.readDouble(),
@@ -735,6 +761,7 @@ List<ActorHit> hits = new ArrayList<>();
             if (version >= 7) {
                 ActorDeath.Kind[] kinds = ActorDeath.Kind.values();
                 int deathCount = in.readInt();
+                checkCount("deaths", deathCount, MAX_SMALL_ENTRIES);
                 for (int i = 0; i < deathCount; i++) {
                     int tick = in.readInt();
                     int kindOrdinal = in.readByte();
@@ -746,6 +773,7 @@ List<ActorHit> hits = new ArrayList<>();
 
             if (version >= 8) {
                 int blockCount = in.readInt();
+                checkCount("blocks", blockCount, MAX_SMALL_ENTRIES);
                 for (int i = 0; i < blockCount; i++) {
                     int tick = in.readInt();
                     int x = in.readInt();
@@ -761,6 +789,7 @@ List<ActorHit> hits = new ArrayList<>();
 
             if (version >= 9) {
                 int voiceCount = in.readInt();
+                checkCount("voices", voiceCount, MAX_SMALL_ENTRIES);
                 int budget = ActorVoiceLine.MAX_TOTAL_SAMPLES;
                 for (int i = 0; i < voiceCount; i++) {
                     int tick = in.readInt();
@@ -792,12 +821,14 @@ List<ActorHit> hits = new ArrayList<>();
 
             if (version >= 11) {
                 int vitalCount = in.readInt();
+                checkCount("vitals", vitalCount, MAX_SMALL_ENTRIES);
                 for (int i = 0; i < vitalCount; i++) {
                     take.vitals.add(new ActorVitals(
                         in.readInt(), in.readFloat(), in.readFloat()));
                 }
 
                 int miningCount = in.readInt();
+                checkCount("mining", miningCount, MAX_SMALL_ENTRIES);
                 for (int i = 0; i < miningCount; i++) {
                     int tick = in.readInt();
                     int x = in.readInt();
@@ -808,6 +839,7 @@ List<ActorHit> hits = new ArrayList<>();
                 }
 
                 int effectCount = in.readInt();
+                checkCount("effects", effectCount, MAX_SMALL_ENTRIES);
                 for (int i = 0; i < effectCount; i++) {
                     int tick = in.readInt();
                     String effectId = in.readUTF();
@@ -822,6 +854,7 @@ List<ActorHit> hits = new ArrayList<>();
 
             if (version >= 12) {
                 int runCount = in.readInt();
+                checkCount("inputs", runCount, MAX_SMALL_ENTRIES);
                 // An implausible length is dropped rather than thrown on.
                 //
                 // The obvious guard here is a running budget across all runs,
@@ -866,6 +899,7 @@ for (int i = 0; i < runCount; i++) {
 
         if (version >= 14) {
             int shotCount = in.readInt();
+            checkCount("shots", shotCount, MAX_SMALL_ENTRIES);
             for (int i = 0; i < shotCount; i++) {
                 int tick = in.readInt();
                 double dx = in.readDouble();
@@ -895,6 +929,7 @@ for (int i = 0; i < runCount; i++) {
             // none - they were introduced together, and a take written by an
             // older build ends at the shots above.
             int blockEntityCount = in.readInt();
+            checkCount("block entities", blockEntityCount, MAX_SMALL_ENTRIES);
             for (int i = 0; i < blockEntityCount; i++) {
                 int tick = in.readInt();
                 int x = in.readInt();
@@ -908,6 +943,7 @@ for (int i = 0; i < runCount; i++) {
             }
 
             int containerCount = in.readInt();
+            checkCount("containers", containerCount, MAX_SMALL_ENTRIES);
             for (int i = 0; i < containerCount; i++) {
                 int tick = in.readInt();
                 int x = in.readInt();
@@ -928,6 +964,7 @@ for (int i = 0; i < runCount; i++) {
             }
 
             int miningStateCount = in.readInt();
+            checkCount("mining states", miningStateCount, MAX_SMALL_ENTRIES);
             for (int i = 0; i < miningStateCount; i++) {
                 int tick = in.readInt();
                 int x = in.readInt();
@@ -945,6 +982,7 @@ for (int i = 0; i < runCount; i++) {
             // gate for both, because a version 16 file always has both - the
             // config may be null but its presence byte is always written.
             int cameraCount = in.readInt();
+            checkCount("camera", cameraCount, MAX_FRAMES);
             CameraKeyframe.ShotType[] shotTypes = CameraKeyframe.ShotType.values();
             for (int i = 0; i < cameraCount; i++) {
                 int tick = in.readInt();

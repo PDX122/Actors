@@ -11,11 +11,11 @@ public final class TimelineOps {
 
 
     public static int razorRelative(int startTick, int offsetTicks, int replayTick, int frameCount) {
-        int relative = replayTick - offsetTicks - startTick;
+        long relative = (long) replayTick - (long) offsetTicks - (long) startTick;
         if (relative <= 0 || relative >= frameCount) {
             return -1;
         }
-        return relative;
+        return (int) relative;
     }
 
 
@@ -26,7 +26,8 @@ public final class TimelineOps {
 
     public static int snapStart(int desiredStart, int[] candidates,
                                 float pixelsPerTick, float snapPixels) {
-        if (candidates == null || candidates.length == 0 || pixelsPerTick <= 0.0f) {
+        if (candidates == null || candidates.length == 0 || !(pixelsPerTick > 0.0f)
+            || !(snapPixels >= 0.0f)) {
             return desiredStart;
         }
         int best = desiredStart;
@@ -46,10 +47,11 @@ public final class TimelineOps {
 
 
     public static int rippleShift(int clipFirst, int deletedStart, int deletedEnd) {
-        if (clipFirst >= deletedEnd + 1 || (clipFirst >= deletedStart && deletedStart <= deletedEnd)) {
-            if (clipFirst > deletedEnd) {
-                return -(deletedEnd - deletedStart + 1);
-            }
+        if (deletedEnd < deletedStart) {
+            return 0;
+        }
+        if (clipFirst > deletedEnd) {
+            return -(deletedEnd - deletedStart + 1);
         }
         return 0;
     }
@@ -82,7 +84,9 @@ public final class TimelineOps {
         }
         int delta = destTick - earliest;
         for (CameraKeyframe key : keys) {
-            out.add(key.withTick(Math.max(0, key.tick() + delta)));
+            long moved = (long) key.tick() + (long) delta;
+            int clamped = moved < 0 ? 0 : moved > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) moved;
+            out.add(key.withTick(clamped));
         }
         out.sort(java.util.Comparator.comparingInt(CameraKeyframe::tick));
         return out;

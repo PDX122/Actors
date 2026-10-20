@@ -193,6 +193,8 @@ public final class Hotkey {
         add("importTake", "key.keyboard.i", CONTROL, "Import actor", Hotkey::importTake);
         add("toggleHelp", "key.keyboard.f1", 0, "Open this help", Hotkey::toggleHelp);
         add("toggleHelpAlt", "key.keyboard.slash", CONTROL, "Open this help (alt)", Hotkey::toggleHelp);
+        add("toggleGizmo", "key.keyboard.g", 0, "Show / hide actor gizmo",
+            () -> pdx.dev.fbactors.ui.ActorGizmo.toggle());
     }
 
     /**

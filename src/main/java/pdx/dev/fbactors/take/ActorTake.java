@@ -513,7 +513,8 @@ public final class ActorTake {
         while (index > 0 && this.hits.get(index - 1).tick() > hit.tick()) {
             index--;
         }
-        while (index > 0 && this.hits.get(index - 1).tick() == hit.tick()) {
+        while (index > 0 && this.hits.get(index - 1).tick() == hit.tick()
+            && java.util.Objects.equals(this.hits.get(index - 1).target(), hit.target())) {
             this.hits.remove(index - 1);
             index--;
         }
@@ -632,12 +633,17 @@ public final class ActorTake {
 
         List<ActorHit> collapsed = new ArrayList<>(this.hits.size());
         int lastTick = Integer.MIN_VALUE;
+        java.util.UUID lastTarget = null;
+        boolean hasLast = false;
         for (ActorHit hit : this.hits) {
-            if (hit.tick() == lastTick) {
+            if (hasLast && hit.tick() == lastTick
+                && java.util.Objects.equals(hit.target(), lastTarget)) {
                 continue;
             }
             collapsed.add(hit);
             lastTick = hit.tick();
+            lastTarget = hit.target();
+            hasLast = true;
         }
 
         if (collapsed.size() != this.hits.size()) {
