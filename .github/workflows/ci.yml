@@ -1,0 +1,77 @@
+# Static checks that run on every push and pull request.
+#
+# What runs here and why: a public runner cannot compile this project. The
+# compile and game-test jars for Flashback are proprietary, built locally from
+# the maintainer's own install, and must not be redistributed - so they are not
+# in the repo and no cloud job can obtain them. What CAN be checked without
+# them: mixin descriptors against the checked-in tables, JSON validity, and
+# tooling syntax. Full compilation, unit tests, and game tests run on hardware
+# that has the jars (see the release job below).
+
+name: Static checks
+
+on:
+  push:
+  pull_request:
+  # Manual full builds from hardware that has the jars (see release job).
+  workflow_dispatch:
+
+jobs:
+  static:
+    name: Signatures and syntax
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Mixin signatures (tables, no Flashback jars)
+        run: python3 tools/verify_mixins.py --no-live --no-flashback
+
+      - name: JSON validity
+        run: |
+          python3 - <<'EOF'
+          import json, glob
+          files = (
+              glob.glob('src/main/resources/*.json')
+              + glob.glob('compat/*/resources/*.json')
+              + glob.glob('src/main/resources/assets/**/.json', recursive=True)
+          )
+          assert files, "no JSON files found - glob is wrong"
+          for path in sorted(files):
+              with open(path, encoding='utf-8') as f:
+                  json.load(f)
+              print(f"ok: {path}")
+          EOF
+
+      - name: Tooling syntax
+        run: python3 -m py_compile tools/verify_mixins.py tools/add_headers.py
+
+  # Full build, unit tests, and a GitHub release. MANUAL ONLY (dispatch it
+  # from the Actions tab): it needs a self-hosted runner on hardware that has
+  # what the cloud cannot: the local Flashback jars (libs/ and per-target
+  # run/mods/), JDK 21 + JDK 25, and the gradle.properties paths pointing at
+  # them. To enable: register a self-hosted Windows runner with the label
+  # `fbactors-release` on the maintainer's build machine. Tag-triggered
+  # releases stay off until that runner exists, so tags never queue dead runs.
+  release:
+    name: Build all and release
+    if: github.event_name == 'workflow_dispatch'
+    needs: static
+    runs-on: [self-hosted, fbactors-release]
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Build every target
+        run: ./gradlew buildAll --offline
+        shell: powershell
+
+      - name: Unit tests (1.21.11 representative)
+        run: ./gradlew :versions:1.21.11:test --offline
+        shell: powershell
+
+      - name: Publish release jars
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/dist/*.jar
+          generate_release_notes: true

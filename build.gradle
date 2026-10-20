@@ -1,0 +1,157 @@
+plugins {
+    id 'fabric-loom' version "${loom_version}" apply false
+}
+
+def targets = subprojects.findAll { it.parent != null && it.parent.name == 'versions' }
+
+configure(targets) {
+    apply plugin: 'fabric-loom'
+
+    version = rootProject.mod_version
+    group = rootProject.maven_group
+
+    base {
+        archivesName = "${rootProject.archives_base_name}-${project.mc_version}"
+    }
+
+    repositories {
+        maven { name = 'Fabric'; url = 'https://maven.fabricmc.net/' }
+    }
+
+    sourceSets {
+        main {
+            // `gui_compat` names a directory shared by a group of versions that have the
+            // same GUI API: gui_121 for the 1.21 line, gui_26 for 26.x. Classes whose
+            // GUI API broke mid-line live only in the per-version dirs instead
+            // (e.g. SubtitleOverlay: PoseStack on 1.21.1-1.21.5, JOML
+            // Matrix3x2fStack from 1.21.8 on).
+            def dirs = ["${rootDir}/src/main/java", "${rootDir}/compat/${project.compat}/java"]
+            if (project.hasProperty('gui_compat') && project.gui_compat) {
+                dirs.add("${rootDir}/compat/gui_${project.gui_compat}/java")
+            }
+            java.srcDirs = dirs
+            resources.srcDirs = ["${rootDir}/src/main/resources", "${rootDir}/compat/${project.compat}/resources"]
+        }
+        test {
+            // Unit tests target the shared subsystem logic (morph catalogue, search,
+            // store, selections, take tick math) with no Minecraft client needed.
+            // One copy runs per target, but the code under test is version-agnostic.
+            java.srcDirs = ["${rootDir}/src/test/java"]
+        }
+    }
+
+    dependencies {
+        minecraft "com.mojang:minecraft:${project.mc_version}"
+        // Loom does not put sponge-mixin on either classpath for us. It must be on the
+        // compile classpath for the mixin annotations and on the dev runtime classpath or
+        // the game dies at startup with "ASM not detected on the classpath". Plain
+        // `implementation` satisfies both and is not bundled: nothing is included unless
+        // it is explicitly `include`d.
+        implementation "net.fabricmc:sponge-mixin:${rootProject.mixin_version}"
+        testImplementation platform('org.junit:junit-bom:5.10.3')
+        testImplementation 'org.junit.jupiter:junit-jupiter'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+        // Unit tests run headless: no Minecraft, no Flashback, no game boot.
+        // They cover pure-data subsystems (morph catalogue, search, store,
+        // selections, take tick math) whose warn paths log through local
+        // loggers. Gson and slf4j are pinned explicitly because the game
+        // libraries that normally provide them are not on the test classpath.
+        testImplementation 'com.google.code.gson:gson:2.11.0'
+        testImplementation 'org.slf4j:slf4j-api:2.0.16'
+
+        if (project.mappings == 'identity') {
+            mappings "net.fabricmc:intermediary:0.0.0:v2"
+            implementation "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+            implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api}"
+            implementation "net.fabricmc.fabric-api:fabric-key-mapping-api-v1:${project.key_api}"
+            implementation "net.fabricmc.fabric-api:fabric-command-api-v2:${project.cmd_api}"
+            compileOnly files("${rootDir}/libs/${project.flashback_jar}")
+        } else {
+            mappings loom.officialMojangMappings()
+            modImplementation "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+            modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api}"
+            modCompileOnly files("${rootDir}/libs/${project.flashback_jar}")
+        }
+    }
+
+    processResources {
+        inputs.property 'version', project.version
+        inputs.property 'mc_range', project.mc_range
+        inputs.property 'java_version', project.java_version
+        filesMatching('fabric.mod.json') {
+            expand 'version': project.version,
+                   'mc_range': project.mc_range,
+                   'java_version': project.java_version
+        }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        it.options.release = Integer.parseInt(project.java_version)
+    }
+
+    tasks.withType(Test).configureEach {
+        it.useJUnitPlatform()
+        it.testLogging {
+            events 'failed'
+            exceptionFormat 'short'
+        }
+    }
+
+    java {
+        sourceCompatibility = JavaVersion.toVersion(project.java_version)
+        targetCompatibility = JavaVersion.toVersion(project.java_version)
+    }
+
+    // The daemon has to run on Java 25 because Loom cannot even configure the 26.x
+    // targets otherwise, but the 1.21.x targets crash on a Java 25 game JVM: their LWJGL
+    // reports "Unsupported JNI version detected" and then RenderSystem throws
+    // "Can't getDevice() before it was initialized" before the window ever opens. Gradle
+    // configures every subproject in one run, so a single JDK cannot serve both. Pinning
+    // the launched JVM per target with a toolchain keeps the daemon on 25 and still starts
+    // the 1.21.x game on 21.
+    tasks.withType(JavaExec).configureEach {
+        javaLauncher = javaToolchains.launcherFor {
+            languageVersion = JavaLanguageVersion.of(Integer.parseInt(project.java_version))
+        }
+    }
+
+    // Game smoke tests (tools/smoke_client.ps1 -WorldName, tools/smoke_all.ps1 -JoinWorld):
+    // quickPlay auto-creates and joins a singleplayer world, which loads the
+    // integrated server classes and therefore applies the server-side mixins
+    // (damage gate, block capture, container hooks). Without it runClient stops
+    // at the title screen and those mixins are never exercised. -PsmokeWorld is
+    // only ever set by the smoke scripts, never by hand.
+    tasks.named('runClient') {
+        if (rootProject.hasProperty('smokeWorld') && rootProject.property('smokeWorld')) {
+            args '--quickPlaySingleplayer', rootProject.property('smokeWorld')
+        }
+    }
+}
+
+tasks.register('verifyMixinSignatures', Exec) {
+    group = 'verification'
+    description = 'Checks every compat MixinEntityRenderer against the real game signatures ' +
+        '(javap over the Loom cache) and asserts each target has its Flashback compile/test jars. ' +
+        'Catches InvalidInjectionException descriptor drift without booting the game.'
+    commandLine 'python3', "${rootDir}/tools/verify_mixins.py"
+}
+
+tasks.register('buildAll') {
+    group = 'build'
+    description = 'Verifies mixin signatures, then builds the mod for every supported Minecraft version'
+    dependsOn 'verifyMixinSignatures'
+    dependsOn targets.collect { "${it.path}:build" }
+    doLast {
+        def out = file("${rootDir}/build/dist")
+        out.mkdirs()
+        targets.each { sub ->
+            sub.file('build/libs').listFiles()?.each { jar ->
+                if (jar.name.endsWith('.jar') && !jar.name.contains('-sources')) {
+                    java.nio.file.Files.copy(jar.toPath(), new File(out, jar.name).toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                }
+            }
+        }
+        println "jars in ${out}"
+    }
+}

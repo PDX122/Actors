@@ -1,0 +1,23 @@
+name: Feature request
+description: An idea for actors, directing, or dressing
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: What do you want to stage
+      description: The shot or interaction, not the implementation
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Why it matters
+      description: What can you not film without it
+  - type: dropdown
+    attributes:
+      label: Area
+      options:
+        - Recording / playback
+        - Directing / camera
+        - Emotes, gear, morphs, skins
+        - Take sharing
+        - Something else

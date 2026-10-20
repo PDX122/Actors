@@ -1,0 +1,14 @@
+pluginManagement {
+    repositories {
+        maven { name = 'Fabric'; url = 'https://maven.fabricmc.net/' }
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = 'flashback-actors'
+
+file('versions').listFiles().sort().each { dir ->
+    if (dir.isDirectory()) {
+        include ":versions:${dir.name}"
+    }
+}

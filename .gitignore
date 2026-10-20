@@ -1,0 +1,45 @@
+# Agent working notes: research/design scratch, not part of the project.
+# Kept locally for reference, never committed.
+docs/vanilla-use-audit.md
+docs/spawn-track-design.md
+docs/container-mixins-verdict.md
+
+# Proprietary: slimmed Flashback jars built locally from the maintainer's own
+# install. Must not be redistributed, so they never enter git.
+libs/
+
+# Generated and runtime state.
+build/
+.gradle/
+out/
+docs-site/site/
+
+# Per-target dev runs: game worlds, downloads, logs, user caches, mods.
+versions/*/run/
+versions/*/build/
+versions/*/logs/
+versions/*/crash-reports/
+
+# Logs and inspection scratch at the repo root.
+*.log
+*.log.*
+versions/*/smoke-gradle.log*
+com/
+net/
+_fbinspect/
+_decompiled/
+decompiled/
+drone_model_tmp/
+example bugs/
+
+# OS and editor noise.
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.iml
+
+# Python bytecode and media backstops.
+__pycache__/
+*.pyc
+*.mp4

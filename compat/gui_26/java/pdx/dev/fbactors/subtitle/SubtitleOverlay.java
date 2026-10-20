@@ -1,0 +1,181 @@
+package pdx.dev.fbactors.subtitle;
+
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
+import pdx.dev.fbactors.FlashbackActors;
+import pdx.dev.fbactors.settings.FbSettings;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Subtitle renderer for the 26.x generation, drawn as a HUD element with
+ * {@code GuiGraphicsExtractor}.
+ *
+ * <p>Plain HUD quads, so captions show in the editor preview and in exports
+ * with GUI enabled, and stay out of no-GUI exports on their own. See
+ * {@link SubtitleTrack} for what is drawn and {@link SubtitleMenu} for where
+ * the words come from.
+ */
+public final class SubtitleOverlay {
+
+    private SubtitleOverlay() {
+    }
+
+    public static void install() {
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("fbactors", "subtitles"),
+            (graphics, tickCounter) -> render(graphics));
+    }
+
+    private static void render(GuiGraphicsExtractor graphics) {
+        Minecraft client = Minecraft.getInstance();
+        if (client == null || client.player == null || client.font == null) {
+            return;
+        }
+        int tick = FlashbackActors.replayTick();
+        if (tick < 0) {
+            return;
+        }
+        List<SubtitleTrack.Entry> entries = SubtitleTrack.collect(tick);
+        if (entries.isEmpty()) {
+            return;
+        }
+        draw(graphics, client.font, graphics.guiWidth(), graphics.guiHeight(), entries);
+    }
+
+    private static void draw(GuiGraphicsExtractor graphics, Font font, int screenW, int screenH,
+                             List<SubtitleTrack.Entry> entries) {
+        FbSettings settings = FbSettings.settings();
+        List<Block> bottoms = new ArrayList<>();
+        List<Block> tops = new ArrayList<>();
+        for (SubtitleTrack.Entry entry : entries) {
+            if (entry.alpha() <= 0.01f || entry.text().isEmpty()) {
+                continue;
+            }
+            Block block = layout(font, settings, entry);
+            if (block == null) {
+                continue;
+            }
+            if (block.top()) {
+                tops.add(block);
+            } else {
+                bottoms.add(block);
+            }
+        }
+        int cursor = screenH - 64;
+        for (Block block : bottoms) {
+            cursor -= block.height;
+            paint(graphics, font, block, (screenW - block.width) / 2, cursor);
+            cursor -= 6;
+        }
+        cursor = 24;
+        for (Block block : tops) {
+            paint(graphics, font, block, (screenW - block.width) / 2, cursor);
+            cursor += block.height + 6;
+        }
+    }
+
+    /** One caption with its wrapped lines and measured box, unscaled pixels. */
+    private record Block(SubtitleTrack.Entry entry, List<String> textLines, boolean speaker,
+                         int width, int height, float scale) {
+        boolean top() {
+            if (entry.position() == pdx.dev.fbactors.take.ActorSubtitle.POS_TOP) {
+                return true;
+            }
+            if (entry.position() == pdx.dev.fbactors.take.ActorSubtitle.POS_BOTTOM) {
+                return false;
+            }
+            return FbSettings.settings().subPosition == 1;
+        }
+    }
+
+    private static Block layout(Font font, FbSettings settings, SubtitleTrack.Entry entry) {
+        float scale = entry.size() > 0.0f ? entry.size()
+            : Math.max(0.5f, Math.min(2.0f, settings.subScale));
+        List<String> lines = SubtitleTrack.wrap(entry.text(), font::width,
+            Math.max(200, settings.subMaxWidth));
+        if (lines.isEmpty()) {
+            return null;
+        }
+        boolean speaker = settings.subSpeaker
+            && entry.speaker() != null && !entry.speaker().isBlank();
+        int pad = Math.max(0, settings.subPadding);
+        int width = 0;
+        if (speaker) {
+            width = Math.max(width, font.width(entry.speaker()));
+        }
+        for (String line : lines) {
+            width = Math.max(width, font.width(line));
+        }
+        int height = pad * 2 + (lines.size() + (speaker ? 1 : 0)) * (font.lineHeight + 1);
+        return new Block(entry, lines, speaker, width + pad * 2, height, scale);
+    }
+
+    private static void paint(GuiGraphicsExtractor graphics, Font font, Block block, int left,
+                              int top) {
+        FbSettings settings = FbSettings.settings();
+        SubtitleTrack.Entry entry = block.entry();
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(left, top);
+        graphics.pose().scale(block.scale(), block.scale());
+        try {
+            int pad = Math.max(0, settings.subPadding);
+            if (settings.subBackground) {
+                int alpha = Math.round(255.0f
+                    * Math.max(0.0f, Math.min(0.9f, settings.subBgOpacity)) * entry.alpha());
+                graphics.fill(0, 0, block.width(), block.height(),
+                    (alpha << 24) | rgb(settings.subBgColor));
+            }
+            int y = pad;
+            if (block.speaker()) {
+                int speaker = withAlpha(rgb(settings.subSpeakerColor), entry.alpha());
+                drawLine(graphics, font, settings, entry, entry.speaker(), speaker, block.width(),
+                    y, pad);
+                y += font.lineHeight + 1;
+            }
+            int color = entry.colorArgb() != 0 ? withAlpha(entry.colorArgb(), entry.alpha())
+                : withAlpha(rgb(settings.subTextColor), entry.alpha());
+            for (String line : block.textLines()) {
+                drawLine(graphics, font, settings, entry, line, color, block.width(), y, pad);
+                y += font.lineHeight + 1;
+            }
+        } finally {
+            graphics.pose().popMatrix();
+        }
+    }
+
+    private static void drawLine(GuiGraphicsExtractor graphics, Font font, FbSettings settings,
+                                 SubtitleTrack.Entry entry, String line, int color, int blockWidth,
+                                 int y, int pad) {
+        int x = (blockWidth - font.width(line)) / 2;
+        if (x < pad) {
+            x = pad;
+        }
+        if (settings.subOutline) {
+            int outline = withAlpha(rgb(settings.subOutlineColor), entry.alpha());
+            graphics.text(font, line, x - 1, y, outline, false);
+            graphics.text(font, line, x + 1, y, outline, false);
+            graphics.text(font, line, x, y - 1, outline, false);
+            graphics.text(font, line, x, y + 1, outline, false);
+        }
+        graphics.text(font, line, x, y, color, settings.subShadow && !settings.subOutline);
+    }
+
+    private static int rgb(float[] color) {
+        if (color == null || color.length < 3) {
+            return 0xFFFFFF;
+        }
+        int r = Math.round(Math.max(0.0f, Math.min(1.0f, color[0])) * 255.0f);
+        int g = Math.round(Math.max(0.0f, Math.min(1.0f, color[1])) * 255.0f);
+        int b = Math.round(Math.max(0.0f, Math.min(1.0f, color[2])) * 255.0f);
+        return (r << 16) | (g << 8) | b;
+    }
+
+    private static int withAlpha(int argb, float alpha) {
+        int a = Math.round(255.0f * Math.max(0.0f, Math.min(1.0f, alpha)));
+        return (a << 24) | (argb & 0xFFFFFF);
+    }
+}

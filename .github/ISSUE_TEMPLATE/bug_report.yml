@@ -1,0 +1,41 @@
+name: Bug report
+description: Something broke in game
+labels: [bug]
+body:
+  - type: input
+    attributes:
+      label: Minecraft version
+      placeholder: 1.21.11
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Mod version
+      description: The jar filename, e.g. flashback-actors-1.21.11-0.10.10.jar
+      placeholder: flashback-actors-1.21.11-0.10.10.jar
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Flashback version
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got instead
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Log lines
+      description: Relevant lines from latest.log (actor lines start with the actor's name)
+      render: text
+  - type: checkboxes
+    attributes:
+      label: Checklist
+      options:
+        - label: I matched the jar to my game version (see the versions table in the README)
+          required: true
+        - label: I tested with only Flashback, Fabric API, and this mod where possible
+          required: false

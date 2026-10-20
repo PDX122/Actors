@@ -1,0 +1,33 @@
+# Docs site (Zensical). Pure static build, no proprietary jars needed.
+# Deploys with the official Pages flow; enable once under Settings -> Pages
+# -> Source: GitHub Actions.
+name: Documentation
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - docs-site/**
+      - .github/workflows/docs.yml
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+      - run: pip install zensical
+      - run: zensical build -f docs-site/zensical.toml -s --clean
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs-site/site
+      - uses: actions/deploy-pages@v5
+        id: deployment
