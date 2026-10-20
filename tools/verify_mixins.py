@@ -9,8 +9,11 @@ became ``(long, int, KeyEvent)`` from 1.21.10 on). ``javac`` cannot catch that,
 so this script does: for each ``versions/*/gradle.properties`` entry it
 resolves the real Minecraft jar from the Fabric Loom cache, runs ``javap``,
 and asserts each compat mixin source declares matching parameters. It also
-asserts the Flashback jars each target compiles and game-tests against are
-actually present.
+covers the shared damage mixin (``hurt`` vs ``hurtServer`` pipeline plus
+required ``crit``/``magicCrit``) and every compat ``MixinEntity`` /
+``MixinLivingEntity`` ``@Shadow`` target (a missing shadow is the same startup
+crash), and asserts the Flashback jars each target compiles and game-tests
+against are actually present.
 
 Usage:
     python3 tools/verify_mixins.py [--no-live] [--no-flashback]
@@ -152,6 +155,90 @@ SOUND_EXPECTED = {
                          "entity_entity"}),
     "mc263": frozenset({"entity_blockpos", "entity_ddd", "entity_ddd_novol",
                          "entity_entity"}),
+}
+
+DAMAGE_MIXIN = "src/main/java/pdx/dev/fbactors/mixin/MixinPlayerActorDamage.java"
+
+# Player hooks in MixinPlayerActorDamage: (key, descriptor, required, count).
+# hurt/hurtServer are the legacy/new damage entry points; both hook with
+# require = 0 (exactly one exists per target) and each appears twice
+# (HEAD lift + RETURN restore). crit/magicCrit are required: a missing target
+# must fail loudly, and each appears once.
+DAMAGE_HOOKS = (
+    ("hurt",
+     "hurt(Lnet/minecraft/world/damagesource/DamageSource;F)Z",
+     False, 2),
+    ("hurtServer",
+     "hurtServer(Lnet/minecraft/server/level/ServerLevel;"
+     "Lnet/minecraft/world/damagesource/DamageSource;F)Z",
+     False, 2),
+    ("crit",
+     "crit(Lnet/minecraft/world/entity/Entity;)V",
+     True, 1),
+    ("magicCrit",
+     "magicCrit(Lnet/minecraft/world/entity/Entity;)V",
+     True, 1),
+)
+
+# Fallback ground truth: which damage entry point exists per compat dir,
+# verified with javap against the Loom cache on 2026-10-20. Only the 1.21.1
+# target still routes through hurt(DamageSource, F); everything newer renamed
+# it to hurtServer(ServerLevel, DamageSource, F). crit/magicCrit exist on all.
+DAMAGE_EXPECTED = {
+    "mc1211": "hurt",
+    "mc1214": "hurtServer",
+    "mc1215": "hurtServer",
+    "mc1218": "hurtServer",
+    "mc12110": "hurtServer",
+    "mc12111": "hurtServer",
+    "mc261": "hurtServer",
+    "mc262": "hurtServer",
+    "mc263": "hurtServer",
+}
+
+# Fallback ground truth for MixinEntity @Shadow targets: (member, type,
+# visibility) tuples per compat dir, verified with javap -p against the Loom
+# cache on 2026-10-20. 26.3 made invulnerableTime private; the rest are public.
+ENTITY_SHADOWS = {
+    "mc1211": (("invulnerableTime", "int", "public"),),
+    "mc1214": (("invulnerableTime", "int", "public"),),
+    "mc1215": (("invulnerableTime", "int", "public"),),
+    "mc1218": (("invulnerableTime", "int", "public"),),
+    "mc12110": (("invulnerableTime", "int", "public"),),
+    "mc12111": (("invulnerableTime", "int", "public"),),
+    "mc261": (("invulnerableTime", "int", "public"),),
+    "mc262": (("invulnerableTime", "int", "public"),),
+    "mc263": (("invulnerableTime", "int", "private"),),
+}
+
+# Fallback ground truth for MixinLivingEntity @Shadow targets, verified with
+# javap -p against the Loom cache on 2026-10-20. itemSwapTicker only exists
+# from 1.21.11 on (removed with the 1.21.2 swap-penalty changes); 26.3
+# replaced the swinging field and updateSwingTime() with a SwingState object.
+_LIVING_BASE = (
+    ("swinging", "boolean", "public"),
+    ("updateSwingTime()", "void", "protected"),
+    ("jumping", "boolean", "protected"),
+    ("attackStrengthTicker", "int", "protected"),
+    ("lastHurt", "float", "protected"),
+)
+_LIVING_SWAP = _LIVING_BASE + (("itemSwapTicker", "int", "protected"),)
+LIVING_SHADOWS = {
+    "mc1211": _LIVING_BASE,
+    "mc1214": _LIVING_BASE,
+    "mc1215": _LIVING_BASE,
+    "mc1218": _LIVING_BASE,
+    "mc12110": _LIVING_BASE,
+    "mc12111": _LIVING_SWAP,
+    "mc261": _LIVING_SWAP,
+    "mc262": _LIVING_SWAP,
+    "mc263": (
+        ("swingState", "SwingState", "private"),
+        ("jumping", "boolean", "protected"),
+        ("attackStrengthTicker", "int", "protected"),
+        ("itemSwapTicker", "int", "protected"),
+        ("lastHurt", "float", "protected"),
+    ),
 }
 
 
@@ -436,6 +523,294 @@ def check_sound_target(
     return errors
 
 
+def check_damage_mixin(src: str) -> list[str]:
+    """Assert MixinPlayerActorDamage declares each damage hook with the right flag.
+
+    The hurt/hurtServer pair each hooks with ``require = 0`` (exactly one of
+    them exists per target) and must appear twice (HEAD lift + RETURN
+    restore); a dropped half silently breaks combat capture. crit/magicCrit
+    are required: a missing target must fail loudly.
+    """
+    errors: list[str] = []
+    if "@Mixin(Player.class)" not in src:
+        errors.append(f"{DAMAGE_MIXIN}: expected @Mixin(Player.class)")
+    # hurtServer's descriptor is split over a string concatenation in source.
+    flat = re.sub(r'"\s*\+\s*"', "", src)
+    for key, desc, required, count in DAMAGE_HOOKS:
+        needle = f'method = "{desc}"'
+        parts = flat.split(needle)
+        n = len(parts) - 1
+        if n == 0:
+            errors.append(f"{DAMAGE_MIXIN}: missing hook for {key} ({desc})")
+            continue
+        if n != count:
+            errors.append(
+                f"{DAMAGE_MIXIN}: hook {key} appears {n}x, expected {count}x "
+                "(HEAD+RETURN pair must stay together)"
+            )
+        for i in range(1, len(parts)):
+            # The @Inject annotation owning this descriptor is the text between
+            # this method="..." and the previous @Inject boundary.
+            seg = parts[i - 1].rsplit("@Inject", 1)[-1]
+            tail = parts[i].split("@Inject", 1)[0].split("private void", 1)[0]
+            annot = seg + tail
+            has_opt = re.search(r"require\s*=\s*0", annot) is not None
+            if required and has_opt:
+                errors.append(
+                    f"{DAMAGE_MIXIN}: required hook {key} passes require = 0 "
+                    "(a missing target must fail, not silently skip)"
+                )
+            if not required and not has_opt:
+                errors.append(
+                    f"{DAMAGE_MIXIN}: optional hook {key} lacks require = 0 -> "
+                    "InvalidInjectionException on targets without it"
+                )
+    return errors
+
+
+def live_damage(mc_version: str, javap: str | None) -> tuple[set[str], list[str]] | None:
+    """Return (present damage-hook keys, unknown same-named methods) for Player.
+
+    Returns None when the jar or javap is unavailable (caller falls back to
+    DAMAGE_EXPECTED). Only exact descriptor matches count: hurt must be
+    ``boolean hurt(DamageSource, float)``, hurtServer
+    ``boolean hurtServer(ServerLevel, DamageSource, float)``, crit/magicCrit
+    ``void (magic)Crit(Entity)``. Same-named plumbing (hurtArmor and friends)
+    is ignored; a same-named method with a *different* signature is reported
+    as unknown so a rename lands loudly instead of as require = 0 silence.
+    """
+    if javap is None:
+        return None
+    jar = find_game_jar(mc_version)
+    if jar is None:
+        return None
+    text = javap_text(javap, jar, "net.minecraft.world.entity.player.Player")
+    if "class net.minecraft.world.entity.player.Player" not in text:
+        return None
+    present: set[str] = set()
+    unknown: list[str] = []
+    pat = (r"(public|protected|private)?\s*([\w.$<>\[\]]+)\s+"
+           r"(hurt|hurtServer|crit|magicCrit)\((.*?)\)\s*;")
+    for m in re.finditer(pat, text):
+        ret, name, params = m.group(2), m.group(3), m.group(4)
+        args = [a.strip() for a in params.split(",") if a.strip()] if params.strip() else []
+        key: str | None = None
+        if (name == "hurt" and ret == "boolean"
+                and args == ["net.minecraft.world.damagesource.DamageSource", "float"]):
+            key = "hurt"
+        elif (name == "hurtServer" and ret == "boolean"
+                and args == ["net.minecraft.server.level.ServerLevel",
+                             "net.minecraft.world.damagesource.DamageSource", "float"]):
+            key = "hurtServer"
+        elif (name in ("crit", "magicCrit") and ret == "void"
+                and args == ["net.minecraft.world.entity.Entity"]):
+            key = name
+        else:
+            unknown.append(f"{ret} {name}({params})")
+            continue
+        present.add(key)
+    return present, unknown
+
+
+def check_damage_target(
+    vdir: str, compat: str, present: set[str], unknown: list[str]
+) -> list[str]:
+    """Assert one target's Player damage surface matches the mixin hooks."""
+    errors: list[str] = []
+    for u in unknown:
+        errors.append(
+            f"{vdir}: game has unexpected Player.{u} (audit: a rename lands "
+            f"as require = 0 silence - hook it or document why in {DAMAGE_MIXIN})"
+        )
+    for req in ("crit", "magicCrit"):
+        if req not in present:
+            errors.append(
+                f"{vdir}: required {req}(Entity)V missing from game "
+                "(required hook will crash startup)"
+            )
+    has_old, has_new = "hurt" in present, "hurtServer" in present
+    if not has_old and not has_new:
+        errors.append(
+            f"{vdir}: Player has neither hurt nor hurtServer - combat capture "
+            "is dead (both hooks require = 0)"
+        )
+    if has_old and has_new:
+        errors.append(
+            f"{vdir}: Player has BOTH hurt and hurtServer - HEAD+RETURN "
+            "pairs would double-lift"
+        )
+    expected = DAMAGE_EXPECTED.get(compat)
+    if expected is not None:
+        pipe = sorted(p for p in ("hurt", "hurtServer") if p in present)
+        if pipe != [expected]:
+            errors.append(
+                f"{vdir}: damage pipeline {pipe} != DAMAGE_EXPECTED "
+                f"[{expected}] (update tools/verify_mixins.py)"
+            )
+    return errors
+
+
+def simple_name(typ: str) -> str:
+    """Last dotted segment of a javap/source type (``$`` counts as a dot)."""
+    return typ.replace("$", ".").rsplit(".", 1)[-1]
+
+
+def parse_shadows(src: str) -> list[tuple[str, str, str | None, str, int]]:
+    """List the @Shadow/@Accessor/@Invoker targets a compat mixin declares.
+
+    Returns (name, simple type, visibility, kind, arity) tuples: kind is
+    "field", or "method" for abstract shadow methods. Comments are stripped
+    first so prose mentioning ``@Shadow`` is not mistaken for a declaration.
+    """
+    code = re.sub(r"/\*.*?\*/", "", src, flags=re.DOTALL)
+    code = re.sub(r"//[^\n]*", "", code)
+    found: list[tuple[str, str, str | None, str, int]] = []
+    for m in re.finditer(r"@(Shadow|Accessor|Invoker)\b([^;]*?);", code, flags=re.DOTALL):
+        decl = m.group(2)
+        decl = re.sub(r"^\s*\([^;]*?\)", "", decl)  # annotation args, if any
+        decl = re.sub(r"^(?:\s*@\w+(?:\([^;]*?\))?)+", "", decl)  # stacked annotations
+        dm = re.match(
+            r"\s*(public|protected|private)?\s*"
+            r"((?:static|final|abstract|synchronized|default)\s+)*"
+            r"([\w.$<>\[\]]+)\s+(\w+)\s*(\(([^;]*)\))?\s*$",
+            decl,
+            flags=re.DOTALL,
+        )
+        if not dm:
+            found.append(("<unparsed>", "", None, "field", 0))
+            continue
+        vis, typ, name, parens, params = dm.group(1), dm.group(3), dm.group(4), dm.group(5), dm.group(6)
+        if parens is None:
+            found.append((name, simple_name(typ), vis, "field", 0))
+        else:
+            arity = 0 if not params.strip() else len([a for a in params.split(",") if a.strip()])
+            found.append((name, simple_name(typ), vis, "method", arity))
+    return found
+
+
+def live_shadow_text(mc_version: str, javap: str | None, cls: str) -> str | None:
+    """Full ``javap -p`` output for one class, or None when unavailable."""
+    if javap is None:
+        return None
+    jar = find_game_jar(mc_version)
+    if jar is None:
+        return None
+    text = javap_text(javap, jar, cls, private=True)
+    if f"class {cls}" not in text:
+        return None
+    return text
+
+
+def check_shadow_set(
+    owner: str,
+    compat: str,
+    parsed: list[tuple[str, str, str | None, str, int]],
+    live_text: str | None,
+    expected: tuple[tuple[str, str, str], ...],
+    table_name: str,
+) -> list[str]:
+    """Assert each shadowed member exists on the game class with a match.
+
+    ``live_text`` is ``javap -p`` output, or None under ``--no-live`` (then
+    only the table comparison runs). A missing shadow target crashes startup,
+    so every miss fails loudly; type, arity, and visibility must match too (a
+    public shadow of a private field fails to apply, as 26.3 showed).
+    """
+    errors: list[str] = []
+    if live_text is not None:
+        for name, typ, vis, kind, arity in parsed:
+            disp = name + "()" if kind == "method" else name
+            if kind == "field":
+                pat = (r"(public|protected|private)\s+"
+                       r"(?:(?:static|final|transient|volatile)\s+)*"
+                       r"([\w.$<>\[\]]+)\s+" + re.escape(name) + r"\s*;")
+            else:
+                pat = (r"(public|protected|private)?\s*([\w.$<>\[\]]+)\s+"
+                       + re.escape(name) + r"\s*\(([^)]*)\)\s*;")
+            m = re.search(pat, live_text)
+            if not m:
+                errors.append(
+                    f"{compat}: {owner} shadow '{disp}' missing from game "
+                    "(startup crash)"
+                )
+                continue
+            gvis, gtyp = m.group(1), m.group(2)
+            if simple_name(gtyp) != typ:
+                errors.append(
+                    f"{compat}: {owner} shadow '{disp}' declares {typ} "
+                    f"but game has {gtyp}"
+                )
+            if gvis is not None and vis is not None and gvis != vis:
+                errors.append(
+                    f"{compat}: {owner} shadow '{disp}' declares {vis} "
+                    f"but game member is {gvis} (shadow must match)"
+                )
+            if kind == "method":
+                gparams = m.group(3).strip()
+                garity = 0 if not gparams else len([a for a in gparams.split(",") if a.strip()])
+                if garity != arity:
+                    errors.append(
+                        f"{compat}: {owner} shadow '{disp}' takes {arity} arg(s) "
+                        f"but game takes {garity}"
+                    )
+    got = sorted((n + ("()" if k == "method" else ""), t, v) for n, t, v, k, _ in parsed)
+    if got != sorted(expected):
+        errors.append(
+            f"{compat}: {owner} shadows {got} != {table_name} table "
+            f"{sorted(expected)} (update tools/verify_mixins.py)"
+        )
+    return errors
+
+
+def check_compat_shadows(
+    compat: str, mc_version: str, javap: str | None
+) -> tuple[list[str], str, str]:
+    """Verify both compat shadow mixins against their game targets.
+
+    Returns (errors, detail, origin): detail summarizes the member counts for
+    the ok line, origin is "javap" or "table". Whole-mixin fallback: if either
+    game class is unreachable, both files check against the tables only.
+    """
+    errors: list[str] = []
+    specs = (
+        ("MixinEntity", "net.minecraft.world.entity.Entity", ENTITY_SHADOWS, "ENTITY_SHADOWS"),
+        ("MixinLivingEntity", "net.minecraft.world.entity.LivingEntity", LIVING_SHADOWS, "LIVING_SHADOWS"),
+    )
+    live: dict[str, str] = {}
+    if javap is not None:
+        for _, cls, _, _ in specs:
+            text = live_shadow_text(mc_version, javap, cls)
+            if text is None:
+                live = {}
+                break
+            live[cls] = text
+    origin = "javap" if live else "table"
+    counts: list[str] = []
+    for mixin_name, cls, table, table_name in specs:
+        path = COMPAT / compat / f"java/pdx/dev/fbactors/mixin/{mixin_name}.java"
+        if not path.exists():
+            errors.append(f"missing {path.relative_to(ROOT)}")
+            continue
+        parsed = parse_shadows(path.read_text(encoding="utf-8"))
+        if not parsed:
+            errors.append(
+                f"{compat}: {mixin_name} declares no @Shadow/@Accessor targets "
+                "(parser blind spot?)"
+            )
+            continue
+        counts.append(f"{mixin_name}:{len(parsed)}")
+        expected = table.get(compat)
+        if expected is None:
+            errors.append(f"unknown compat '{compat}' (add to {table_name})")
+            continue
+        for e in check_shadow_set(
+            mixin_name, compat, parsed,
+            live.get(cls), expected, table_name,
+        ):
+            errors.append(e)
+    return errors, " ".join(counts), origin
+
+
 def main() -> int:
     use_live = "--no-live" not in sys.argv
     allow_no_flashback = "--no-flashback" in sys.argv
@@ -446,6 +821,7 @@ def main() -> int:
     failures: list[str] = []
     checked = 0
     seen_sound_sigs: set[str] = set()
+    seen_damage: set[str] = set()
 
     for vdir in sorted(VERSIONS.iterdir()):
         props_file = vdir / "gradle.properties"
@@ -583,7 +959,43 @@ def main() -> int:
             )
         seen_sound_sigs.update(sigs)
 
-    # 6. Shared MixinLevelSound hook check: every descriptor present with the
+        # 6. Damage-pipeline check. Same live-jar source of truth,
+        # DAMAGE_EXPECTED table fallback. crit/magicCrit must exist on every
+        # target (their hooks are required); exactly one of hurt/hurtServer
+        # must exist (legacy vs new pipeline - zero means combat capture is
+        # dead, both means the HEAD+RETURN pairs would double-lift).
+        live_dmg = live_damage(mc, javap) if use_live else None
+        if live_dmg is not None:
+            dsigs, dunknown, dmg_origin = live_dmg[0], live_dmg[1], "javap"
+        elif compat in DAMAGE_EXPECTED:
+            pipe = DAMAGE_EXPECTED[compat]
+            dsigs, dunknown, dmg_origin = {pipe, "crit", "magicCrit"}, [], "table"
+        else:
+            failures.append(f"{vdir.name}: unknown compat '{compat}' (add to DAMAGE_EXPECTED)")
+            continue
+        derrs = check_damage_target(vdir.name, compat, dsigs, dunknown)
+        if derrs:
+            failures.extend(derrs)
+        else:
+            print(
+                f"ok: {vdir.name} damage (mc {mc}, {compat} -> "
+                f"{sorted(dsigs - {'crit', 'magicCrit'})[0]} + crit/magicCrit) [{dmg_origin}]",
+                flush=True,
+            )
+        seen_damage.update(dsigs)
+
+        # 7. Entity-shadow check. Each compat MixinEntity/MixinLivingEntity is
+        # parsed for its @Shadow/@Accessor targets and every one must exist on
+        # the game class with a matching type and visibility (ENTITY_SHADOWS /
+        # LIVING_SHADOWS table fallback). A missing shadow target crashes
+        # startup, so misses fail loudly per target.
+        sh_errs, sh_detail, sh_origin = check_compat_shadows(compat, mc, javap if use_live else None)
+        if sh_errs:
+            failures.extend(f"{vdir.name}: {e}" for e in sh_errs)
+        else:
+            print(f"ok: {vdir.name} shadows (mc {mc}, {compat} -> {sh_detail}) [{sh_origin}]", flush=True)
+
+    # 8. Shared MixinLevelSound hook check: every descriptor present with the
     # right require flag, and no require = 0 hook names a method that exists
     # on none of the checked targets (dead hook hiding a descriptor typo).
     snd_mixin = ROOT / SOUND_MIXIN
@@ -600,6 +1012,27 @@ def main() -> int:
             if not required and key not in seen_sound_sigs:
                 failures.append(
                     f"{SOUND_MIXIN}: require = 0 hook {key} matches no checked "
+                    "target (typo'd descriptor hiding behind require = 0?)"
+                )
+
+    # 9. Shared MixinPlayerActorDamage hook check: every descriptor present
+    # with the right require flag and HEAD+RETURN count, and no require = 0
+    # hook names a method that exists on none of the checked targets (a
+    # hurtServer-style rename landing as require = 0 silence).
+    dmg_mixin = ROOT / DAMAGE_MIXIN
+    if not dmg_mixin.exists():
+        failures.append(f"missing {DAMAGE_MIXIN}")
+    else:
+        dmg_src = dmg_mixin.read_text(encoding="utf-8")
+        derrs = check_damage_mixin(dmg_src)
+        if derrs:
+            failures.extend(derrs)
+        else:
+            print(f"ok: damage mixin hooks ({len(DAMAGE_HOOKS)} descriptors) [source]", flush=True)
+        for key, desc, required, _ in DAMAGE_HOOKS:
+            if not required and key not in seen_damage:
+                failures.append(
+                    f"{DAMAGE_MIXIN}: require = 0 hook {key} matches no checked "
                     "target (typo'd descriptor hiding behind require = 0?)"
                 )
 

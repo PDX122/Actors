@@ -6,7 +6,9 @@ You need JDK 21 and JDK 25, plus the local Flashback jars: `libs/` for
 compiling and one per target in `versions/<mc>/run/mods/` for game tests.
 Those jars are built from your own Flashback install and are proprietary, so
 they never enter git. Without them you can still run the static gate below,
-but not compilation or tests.
+but not compilation or tests. Contributors on a fresh machine must also point
+`org.gradle.java.home` (and `org.gradle.java.installations.paths`) in
+`gradle.properties` at their own JDK 25 and JDK 21 installs.
 
 ```bash
 ./gradlew verifyMixinSignatures   # fast static gate, no game boot
