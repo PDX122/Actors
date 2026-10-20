@@ -227,6 +227,11 @@ public final class GearStore {
         }
 
         try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+            if (Files.size(file) > 32L * 1024L * 1024L) {
+                FlashbackActors.LOGGER.warn("Gear file {} too large; ignoring", file);
+                this.dirty = false;
+                return 0;
+            }
             JsonElement root = JsonParser.parseReader(reader);
             if (!root.isJsonObject()) {
                 FlashbackActors.LOGGER.warn("Gear file {} is not a JSON object; ignoring", file);
@@ -251,6 +256,9 @@ public final class GearStore {
             if (actors != null && actors.isJsonObject()) {
                 for (Map.Entry<String, JsonElement> entry
                         : actors.getAsJsonObject().entrySet()) {
+                    if (loaded >= 4096) {
+                        break;
+                    }
                     if (readActor(entry.getKey(), entry.getValue())) {
                         loaded++;
                     }
@@ -334,15 +342,22 @@ public final class GearStore {
         if (enchants != null && enchants.isJsonObject()) {
             for (Map.Entry<String, JsonElement> entry
                     : enchants.getAsJsonObject().entrySet()) {
+                if (enchantments.size() >= 64) {
+                    break;
+                }
                 int level = intOf(entry.getValue(), 0);
                 if (level > 0) {
-                    enchantments.put(entry.getKey(), level);
+                    enchantments.put(entry.getKey(), Math.min(level, 255));
                 }
             }
         }
 
+        String nbt = text(object, "nbt", null);
+        if (nbt != null && nbt.length() > 60000) {
+            return null;
+        }
         return new GearOverride(slot, text(object, "item", ""), count, enchantments,
-            text(object, "nbt", null), boolOf(object, "enabled", true));
+            nbt, boolOf(object, "enabled", true));
     }
 
 

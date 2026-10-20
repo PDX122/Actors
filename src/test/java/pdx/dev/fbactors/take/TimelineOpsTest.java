@@ -32,6 +32,32 @@ class TimelineOpsTest {
         assertEquals(1010, TimelineOps.snapStart(1010, candidates, 2.0f, 6.0f));
         assertEquals(1003, TimelineOps.snapStart(1003, null, 2.0f, 6.0f));
         assertEquals(1003, TimelineOps.snapStart(1003, candidates, 0.0f, 6.0f));
+        assertEquals(1003, TimelineOps.snapStart(1003, candidates, Float.NaN, 6.0f));
+        assertEquals(1003, TimelineOps.snapStart(1003, candidates, 2.0f, -1.0f));
+    }
+
+    @Test
+    void rippleIgnoresInvertedRange() {
+        assertEquals(0, TimelineOps.rippleShift(1300, 1220, 1200));
+        assertEquals(-21, TimelineOps.rippleShift(1300, 1200, 1220));
+        assertEquals(-21, TimelineOps.rippleShift(Integer.MAX_VALUE, 1200, 1220));
+    }
+
+    @Test
+    void razorHandlesExtremeTicks() {
+        assertEquals(-1, TimelineOps.razorRelative(Integer.MAX_VALUE, 0, Integer.MAX_VALUE, 100));
+        assertTrue(TimelineOps.razorRelative(0, 0, 50, Integer.MAX_VALUE) >= 0);
+    }
+
+    @Test
+    void pasteKeysClampsOverflow() {
+        CameraTrack track = new CameraTrack();
+        track.add(new CameraKeyframe(Integer.MAX_VALUE - 5, 0, 64, 0, 0, 0, 70,
+            CameraKeyframe.ShotType.WIDE, null, CameraKeyframe.EASING_SMOOTH));
+        List<CameraKeyframe> pasted = TimelineOps.pasteKeys(
+            TimelineOps.copyKeys(track, 0, Integer.MAX_VALUE), Integer.MAX_VALUE);
+        assertEquals(1, pasted.size());
+        assertEquals(Integer.MAX_VALUE, pasted.get(0).tick());
     }
 
     @Test

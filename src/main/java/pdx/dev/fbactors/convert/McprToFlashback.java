@@ -218,8 +218,16 @@ public final class McprToFlashback {
             if (entry == null) {
                 return null;
             }
+            long size = entry.getSize();
+            if (size > 256L * 1024L * 1024L) {
+                return null;
+            }
             try (var in = file.getInputStream(entry)) {
-                return in.readAllBytes();
+                byte[] data = in.readAllBytes();
+                if (data.length > 256 * 1024 * 1024) {
+                    return null;
+                }
+                return data;
             }
         } catch (Exception e) {
             return null;

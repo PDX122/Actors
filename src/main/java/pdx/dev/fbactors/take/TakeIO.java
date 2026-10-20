@@ -183,6 +183,24 @@ public final class TakeIO {
     private static final int MAX_SMALL_ENTRIES = 200_000;
     private static final long MAX_FILE_BYTES = 256L * 1024L * 1024L;
 
+    private static String fitUtf(String value) {
+        if (value == null || value.isEmpty()) {
+            return "";
+        }
+        if (value.length() < 20000) {
+            return value;
+        }
+        try {
+            byte[] encoded = value.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            if (encoded.length <= 60000) {
+                return value;
+            }
+        } catch (RuntimeException e) {
+            return "";
+        }
+        return "";
+    }
+
     private static void checkCount(String what, int count, int max) throws IOException {
         if (count < 0 || count > max) {
             throw new IOException("Take declares " + count + " " + what
@@ -245,7 +263,7 @@ public final class TakeIO {
                 // held a plain item - the same convention itemId uses above,
                 // so a take full of unenchanted gear costs two bytes per
                 // entry rather than a fixed string.
-                out.writeUTF(e.nbt() == null ? "" : e.nbt());
+                out.writeUTF(fitUtf(e.nbt()));
             }
 
 out.writeInt(take.hits.size());
@@ -299,8 +317,8 @@ out.writeInt(take.hits.size());
                 out.writeInt(b.x());
                 out.writeInt(b.y());
                 out.writeInt(b.z());
-                out.writeUTF(b.before() == null ? "" : b.before());
-                out.writeUTF(b.after() == null ? "" : b.after());
+                out.writeUTF(fitUtf(b.before()));
+                out.writeUTF(fitUtf(b.after()));
             }
 
             out.writeInt(take.voices.size());
@@ -413,7 +431,7 @@ out.writeInt(take.hits.size());
                 out.writeInt(be.y());
                 out.writeInt(be.z());
                 out.writeUTF(be.type() == null ? "" : be.type());
-                out.writeUTF(be.nbt() == null ? "" : be.nbt());
+                out.writeUTF(fitUtf(be.nbt()));
             }
 
             out.writeInt(take.containers.size());
@@ -426,7 +444,7 @@ out.writeInt(take.hits.size());
                 out.writeInt(ci.slot());
                 out.writeUTF(ci.itemId() == null ? "" : ci.itemId());
                 out.writeInt(ci.count());
-                out.writeUTF(ci.nbt() == null ? "" : ci.nbt());
+                out.writeUTF(fitUtf(ci.nbt()));
             }
 
             out.writeInt(take.miningStates.size());
