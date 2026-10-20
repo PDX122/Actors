@@ -55,6 +55,23 @@ public final class ActorGizmo {
     private static double previewPivotX;
     private static double previewPivotZ;
 
+    private static UUID viewportActorId;
+
+    private static Actor dragActor;
+
+
+    public static boolean wantsMouse() {
+        if (dragHandle >= 0) {
+            return true;
+        }
+        try {
+            return hoverHandle >= 0
+                && (ImGui.isMouseClicked(0) || ImGui.isMouseDown(0));
+        } catch (RuntimeException | LinkageError e) {
+            return false;
+        }
+    }
+
     private ActorGizmo() {
     }
 
@@ -75,6 +92,7 @@ public final class ActorGizmo {
     public static void cancel() {
         dragHandle = -1;
         hoverHandle = -1;
+        dragActor = null;
         pendingDx = 0.0;
         pendingDy = 0.0;
         pendingDz = 0.0;
@@ -146,7 +164,7 @@ public final class ActorGizmo {
             return;
         }
         syncViewportSelection();
-        Actor actor = ActorTrack.selected();
+        Actor actor = activeActor();
         if (actor == null || actor.take == null || actor.take.frames.isEmpty()) {
             clearPreview();
             return;
@@ -190,6 +208,7 @@ public final class ActorGizmo {
             }
             if (hoverHandle >= 0 && ImGui.isMouseClicked(0) && !ReplayUI.isMovingCamera()) {
                 dragHandle = hoverHandle;
+                dragActor = actor;
                 grabAnchorX = anchorX;
                 grabAnchorY = anchorY;
                 grabAnchorZ = anchorZ;
@@ -212,6 +231,19 @@ public final class ActorGizmo {
                 }
             }
         } else {
+            if (dragActor == null) {
+                cancel();
+                return;
+            }
+            actor = dragActor;
+            ActorFrame dragFrame = actor.take.frameAt(tick);
+            if (dragFrame == null) {
+                cancel();
+                return;
+            }
+            anchorX = dragFrame.x();
+            anchorY = dragFrame.y();
+            anchorZ = dragFrame.z();
             if (ImGui.isMouseClicked(1)) {
                 cancel();
                 return;
@@ -257,12 +289,14 @@ public final class ActorGizmo {
 
     private static void finishDrag(Actor actor, int tick) {
         int handle = dragHandle;
+        Actor finished = dragActor != null ? dragActor : actor;
         double dx = pendingDx;
         double dy = pendingDy;
         double dz = pendingDz;
         double yaw = pendingYaw;
         dragHandle = -1;
         hoverHandle = -1;
+        dragActor = null;
         pendingDx = 0.0;
         pendingDy = 0.0;
         pendingDz = 0.0;
@@ -275,15 +309,15 @@ public final class ActorGizmo {
             return;
         }
         UUID replayId = FlashbackActors.loadedReplayIdOrNull();
-        TransformBake.bakeWithUndo(actor, dx, dy, dz, yaw, grabAnchorX, grabAnchorZ, replayId);
+        TransformBake.bakeWithUndo(finished, dx, dy, dz, yaw, grabAnchorX, grabAnchorZ, replayId);
         try {
-            if (actor.clone() != null && actor.take != null) {
-                int takeTick = tick - actor.take.offsetTicks;
-                ActorFrame frame = actor.take.frameAt(tick);
+            if (finished.clone() != null && finished.take != null) {
+                int takeTick = tick - finished.take.offsetTicks;
+                ActorFrame frame = finished.take.frameAt(tick);
                 if (frame != null) {
-                    Compat.snapTo(actor.clone(), frame.x(), frame.y(), frame.z(),
+                    Compat.snapTo(finished.clone(), frame.x(), frame.y(), frame.z(),
                         frame.yRot(), frame.xRot());
-                    actor.markApplied(takeTick);
+                    finished.markApplied(takeTick);
                 }
             }
         } catch (RuntimeException | LinkageError e) {
@@ -324,17 +358,22 @@ public final class ActorGizmo {
         } catch (RuntimeException | LinkageError e) {
             return;
         }
-        if (selected == null) {
-            return;
+        viewportActorId = selected;
+    }
+
+
+    private static Actor activeActor() {
+        if (viewportActorId != null) {
+            try {
+                Actor viewport = FlashbackActors.ACTORS.byUuid(viewportActorId);
+                if (viewport != null) {
+                    return viewport;
+                }
+            } catch (RuntimeException | LinkageError e) {
+                return ActorTrack.selected();
+            }
         }
-        Actor current = ActorTrack.selected();
-        if (current != null && selected.equals(current.take.id)) {
-            return;
-        }
-        Actor actor = FlashbackActors.ACTORS.byUuid(selected);
-        if (actor != null) {
-            ActorTrack.selectViewport(actor);
-        }
+        return ActorTrack.selected();
     }
 
 

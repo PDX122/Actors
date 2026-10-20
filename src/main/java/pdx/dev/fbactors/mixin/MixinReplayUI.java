@@ -27,5 +27,13 @@ public class MixinReplayUI {
 
         Hotkey.renderHelp();
     }
+
+
+    @Inject(method = "handleBasicInputs", at = @At("HEAD"), cancellable = true)
+    private static void fbactors$suppressCameraGrabForGizmo(CallbackInfo ci) {
+        if (ActorGizmo.wantsMouse()) {
+            ci.cancel();
+        }
+    }
 }
 
