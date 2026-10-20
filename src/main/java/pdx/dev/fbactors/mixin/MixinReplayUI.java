@@ -6,6 +6,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import pdx.dev.fbactors.input.Hotkey;
+import pdx.dev.fbactors.ui.ActorGizmo;
 import pdx.dev.fbactors.ui.MorphPicker;
 import pdx.dev.fbactors.ui.SkinPicker;
 
@@ -21,6 +22,7 @@ public class MixinReplayUI {
     private static void fbactors$renderSkinPicker(CallbackInfo ci) {
         SkinPicker.render();
         MorphPicker.render();
+        ActorGizmo.render();
 
 
         Hotkey.renderHelp();
