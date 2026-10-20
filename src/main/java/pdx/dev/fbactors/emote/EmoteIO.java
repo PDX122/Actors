@@ -56,6 +56,9 @@ public final class EmoteIO {
 
 
     public static Emote read(Path path) throws IOException {
+        if (Files.size(path) > 32L * 1024L * 1024L) {
+            throw new IOException("Emote file " + path.getFileName() + " too large");
+        }
         String text;
         try (BufferedReader in = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             StringBuilder sb = new StringBuilder();
@@ -110,6 +113,9 @@ public final class EmoteIO {
 
 
     public static List<Emote> readAll(Path path) throws IOException {
+        if (Files.size(path) > 64L * 1024L * 1024L) {
+            throw new IOException("Emote file " + path.getFileName() + " too large");
+        }
         JsonElement root;
         try (BufferedReader in = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             root = JsonParser.parseReader(in);
@@ -133,11 +139,16 @@ public final class EmoteIO {
                 array = emotes != null && emotes.isJsonArray()
                     ? emotes.getAsJsonArray() : new JsonArray();
             }
-            List<Emote> out = new ArrayList<>(array.size());
+            List<Emote> out = new ArrayList<>(Math.min(array.size(), 4096));
+            int count = 0;
             for (JsonElement element : array) {
+                if (count >= 4096) {
+                    break;
+                }
                 if (element != null && element.isJsonObject()) {
                     out.add(fromJson(element.getAsJsonObject(),
                         path.getFileName().toString()));
+                    count++;
                 }
             }
             return out;
@@ -239,7 +250,7 @@ public final class EmoteIO {
         List<EmoteKeyframe> keys = new ArrayList<>();
         if (keysElement != null && keysElement.isJsonArray()) {
             JsonArray array = keysElement.getAsJsonArray();
-            for (int i = 0; i < array.size(); i++) {
+            for (int i = 0; i < array.size() && i < 200000; i++) {
                 JsonElement element = array.get(i);
                 if (element == null || !element.isJsonObject()) {
                     continue;
@@ -307,7 +318,7 @@ public final class EmoteIO {
 
     private static EmoteKeyframe keyframeFromJson(JsonObject obj) {
         int tick = (int) number(obj, "tick", -1);
-        if (tick < 0) {
+        if (tick < 0 || tick > 2000000) {
 
 
             throw new IllegalArgumentException("no 'tick' (or a negative one)");
@@ -382,13 +393,19 @@ public final class EmoteIO {
             if (element.isJsonPrimitive()) {
                 JsonPrimitive primitive = element.getAsJsonPrimitive();
                 if (primitive.isNumber()) {
-                    return primitive.getAsDouble();
+                    double value = primitive.getAsDouble();
+                    return Double.isFinite(value) ? value : fallback;
                 }
                 if (primitive.isBoolean()) {
                     return primitive.getAsBoolean() ? 1.0 : 0.0;
                 }
                 if (primitive.isString()) {
-                    return Double.parseDouble(primitive.getAsString().trim());
+                    try {
+                        double parsed = Double.parseDouble(primitive.getAsString().trim());
+                        return Double.isFinite(parsed) ? parsed : fallback;
+                    } catch (NumberFormatException bad) {
+                        return fallback;
+                    }
                 }
             }
         } catch (NumberFormatException ignored) {

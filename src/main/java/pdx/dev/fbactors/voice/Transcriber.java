@@ -614,6 +614,10 @@ public final class Transcriber {
             long done = 0L;
             int read;
             while ((read = in.read(buffer)) >= 0) {
+                done += read;
+                if (done > 512L * 1024L * 1024L) {
+                    throw new IOException("download too large");
+                }
                 out.write(buffer, 0, read);
                 done += read;
                 if (total > 0) {
@@ -639,7 +643,13 @@ public final class Transcriber {
         try (InputStream fileIn = Files.newInputStream(archive);
              ZipInputStream zip = new ZipInputStream(fileIn)) {
             ZipEntry entry;
+            long total = 0L;
+            int count = 0;
             while ((entry = zip.getNextEntry()) != null) {
+                count++;
+                if (count > 8192) {
+                    throw new IOException("archive has too many entries");
+                }
                 Path target = destination.resolve(entry.getName()).normalize();
                 if (!target.startsWith(destination)) {
                     throw new IOException("archive entry escapes its folder");
@@ -648,7 +658,12 @@ public final class Transcriber {
                     Files.createDirectories(target);
                 } else {
                     Files.createDirectories(target.getParent());
-                    Files.copy(zip, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    long written = Files.copy(zip, target,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    total += written;
+                    if (total > 512L * 1024L * 1024L) {
+                        throw new IOException("archive too large");
+                    }
                 }
                 zip.closeEntry();
             }
@@ -661,6 +676,7 @@ public final class Transcriber {
              GZIPInputStream gzip = new GZIPInputStream(fileIn)) {
             byte[] header = new byte[512];
             String pendingLongName = null;
+            long total = 0L;
             while (readFully(gzip, header)) {
                 if (isZeroBlock(header)) {
                     break;
@@ -673,6 +689,9 @@ public final class Transcriber {
                     name = prefix + "/" + name;
                 }
                 if (type == 'L') {
+                    if (size < 0 || size > 65536) {
+                        throw new IOException("archive name too large");
+                    }
                     byte[] nameBytes = new byte[(int) size];
                     readFully(gzip, nameBytes);
                     skipPadding(gzip, size);
@@ -687,6 +706,9 @@ public final class Transcriber {
                 if (!target.startsWith(destination)) {
                     throw new IOException("archive entry escapes its folder");
                 }
+                if (size < 0 || size > 512L * 1024L * 1024L) {
+                    throw new IOException("archive entry too large");
+                }
                 if (type == '5') {
                     Files.createDirectories(target);
                     continue;
@@ -699,6 +721,10 @@ public final class Transcriber {
                 Files.createDirectories(target.getParent());
                 try (OutputStream out = Files.newOutputStream(target)) {
                     copyExactly(gzip, out, size);
+                }
+                total += size;
+                if (total > 512L * 1024L * 1024L) {
+                    throw new IOException("archive too large");
                 }
                 skipPadding(gzip, size);
             }

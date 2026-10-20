@@ -37,6 +37,9 @@ public final class McprReader {
     private McprReader() {
     }
 
+    private static final int MAX_MCPR_ENTRY_BYTES = 256 * 1024 * 1024;
+    private static final int MAX_MCPR_RECORD_BYTES = 8 * 1024 * 1024;
+
 
     public static Recording readMeta(Path mcpr) throws IOException {
         JsonObject meta;
@@ -87,7 +90,8 @@ public final class McprReader {
             }
             int timestamp = getInt(stream, pos);
             int length = getInt(stream, pos + 4);
-            if (timestamp < 0 || length < 0 || pos + 8 + length > stream.length) {
+            if (timestamp < 0 || length < 0 || length > MAX_MCPR_RECORD_BYTES
+                || pos + 8 + length > stream.length) {
                 throw new IOException("Corrupt .tmcpr record at byte " + pos
                     + " (timestamp " + timestamp + ", length " + length + ")");
             }
@@ -122,7 +126,12 @@ public final class McprReader {
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             byte[] buffer = new byte[65536];
             int read;
+            int total = 0;
             while ((read = in.read(buffer)) >= 0) {
+                total += read;
+                if (total > MAX_MCPR_ENTRY_BYTES) {
+                    throw new IOException(".mcpr entry too large: " + name);
+                }
                 out.write(buffer, 0, read);
             }
             return out.toByteArray();

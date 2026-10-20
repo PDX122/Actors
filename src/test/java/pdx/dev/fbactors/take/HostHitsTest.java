@@ -50,6 +50,34 @@ class HostHitsTest {
     }
 
     @Test
+    void recordHitKeepsSameTickDifferentTarget() {
+        HostHits hits = new HostHits();
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        hits.recordHit(HOST, new ActorHit(10, 4.0f, 1.0, 0.0, 1.0f, first, null,
+            ActorHit.CRIT_NONE));
+        hits.recordHit(HOST, new ActorHit(10, 6.0f, 1.0, 0.0, 1.0f, second, null,
+            ActorHit.CRIT_NONE));
+
+        assertEquals(2, hits.hitsFor(HOST).size());
+        assertEquals(10.0f, hits.healthAt(HOST, 10, 20.0f), 0.001f);
+    }
+
+    @Test
+    void sortHitsKeepsSameTickDifferentTarget() {
+        HostHits hits = new HostHits();
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        hits.recordHit(HOST, new ActorHit(10, 4.0f, 1.0, 0.0, 1.0f, first, null,
+            ActorHit.CRIT_NONE));
+        hits.recordHit(HOST, new ActorHit(10, 6.0f, 1.0, 0.0, 1.0f, second, null,
+            ActorHit.CRIT_NONE));
+        hits.sortHits();
+
+        assertEquals(2, hits.hitsFor(HOST).size());
+    }
+
+    @Test
     void healthAtIsCumulativeAndClamped() {
         HostHits hits = new HostHits();
         hits.recordHit(HOST, hit(10, 4.0f));

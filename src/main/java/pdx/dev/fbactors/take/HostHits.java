@@ -39,7 +39,8 @@ public final class HostHits {
         while (index > 0 && list.get(index - 1).tick() > hit.tick()) {
             index--;
         }
-        while (index > 0 && list.get(index - 1).tick() == hit.tick()) {
+        while (index > 0 && list.get(index - 1).tick() == hit.tick()
+            && java.util.Objects.equals(list.get(index - 1).target(), hit.target())) {
             list.remove(index - 1);
             index--;
         }
@@ -127,12 +128,17 @@ public final class HostHits {
             list.sort(Comparator.comparingInt(ActorHit::tick));
             List<ActorHit> collapsed = new ArrayList<>(list.size());
             int lastTick = Integer.MIN_VALUE;
+            UUID lastTarget = null;
+            boolean hasLast = false;
             for (ActorHit hit : list) {
-                if (hit.tick() == lastTick) {
+                if (hasLast && hit.tick() == lastTick
+                    && java.util.Objects.equals(hit.target(), lastTarget)) {
                     continue;
                 }
                 collapsed.add(hit);
                 lastTick = hit.tick();
+                lastTarget = hit.target();
+                hasLast = true;
             }
             if (collapsed.size() != list.size()) {
                 entry.setValue(collapsed);

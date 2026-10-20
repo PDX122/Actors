@@ -126,6 +126,10 @@ public final class MorphStore {
 
         String text;
         try (BufferedReader in = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+            if (Files.size(file) > 32L * 1024L * 1024L) {
+                LOGGER.warn("{} too large; no morph selections loaded", file);
+                return 0;
+            }
             StringBuilder sb = new StringBuilder();
             char[] buf = new char[8192];
             int n;
@@ -176,6 +180,9 @@ public final class MorphStore {
             return 0;
         }
         for (JsonElement element : array) {
+            if (loaded >= 4096) {
+                break;
+            }
             MorphSelection selection = readSelection(element);
             if (selection != null) {
                 this.selections.put(selection.takeId(), selection);
