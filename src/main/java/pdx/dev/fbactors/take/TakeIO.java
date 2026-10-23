@@ -29,7 +29,7 @@ public final class TakeIO {
      */
     private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("fbactors");
 
-    private static final int VERSION = 28;
+    private static final int VERSION = 30;
 
     /**
      * The oldest take this build opens: version 8.
@@ -155,6 +155,15 @@ public final class TakeIO {
      * <p>Version 28 appends sound cues (registry id, position, volume, pitch,
      * source) after the rides. Older files end before the section and load
      * silent; older builds refuse the file at the version check.
+     *
+     * <p>Version 29 appends discrete uses (kind, block pos, entity UUID, hand)
+     * after the sounds. Older files end before the section and load with no
+     * uses; older builds refuse the file at the version check.
+     *
+     * <p>Version 30 appends placed-entity spawns (registry id, position,
+     * rotation, opaque NBT) after the uses. Older files end before the
+     * section and load with no spawns; older builds refuse the file at the
+     * version check.
      */
 
     /**
@@ -543,6 +552,36 @@ out.writeInt(take.hits.size());
                 out.writeFloat(cue.volume());
                 out.writeFloat(cue.pitch());
                 out.writeUTF(cue.source() == null ? "" : cue.source());
+            }
+            // Version 29: discrete uses, appended after the sounds. Older
+            // files end before the section and load with no uses.
+            out.writeInt(take.uses.size());
+            for (ActorUse use : take.uses) {
+                out.writeInt(use.tick());
+                out.writeByte(use.kind().ordinal());
+                out.writeInt(use.x());
+                out.writeInt(use.y());
+                out.writeInt(use.z());
+                boolean hasTarget = use.target() != null;
+                out.writeBoolean(hasTarget);
+                if (hasTarget) {
+                    out.writeLong(use.target().getMostSignificantBits());
+                    out.writeLong(use.target().getLeastSignificantBits());
+                }
+                out.writeBoolean(use.offHand());
+            }
+            // Version 30: placed-entity spawns, appended after the uses.
+            // Older files end before the section and load with no spawns.
+            out.writeInt(take.spawns.size());
+            for (ActorSpawn spawn : take.spawns) {
+                out.writeInt(spawn.tick());
+                out.writeUTF(spawn.entityId() == null ? "" : spawn.entityId());
+                out.writeDouble(spawn.x());
+                out.writeDouble(spawn.y());
+                out.writeDouble(spawn.z());
+                out.writeFloat(spawn.yaw());
+                out.writeFloat(spawn.pitch());
+                out.writeUTF(fitUtf(spawn.nbt()));
             }
             out.flush();
         }
@@ -1111,6 +1150,62 @@ for (int i = 0; i < runCount; i++) {
                     } catch (EOFException shortFile) {
                         // A v28 file truncated after the rides still loads
                         // with whatever cues parsed.
+                    }
+                }
+                // Version 29: discrete uses. Older files end before the
+                // section and load with no uses.
+                if (version >= 29) {
+                    try {
+                        int useCount = in.readInt();
+                        if (useCount < 0 || useCount > MAX_SMALL_ENTRIES) {
+                            throw new IOException("Take declares " + useCount
+                                + " uses; the take is truncated or was written by an incompatible build");
+                        }
+                        ActorUse.Kind[] kinds = ActorUse.Kind.values();
+                        for (int i = 0; i < useCount; i++) {
+                            int tick = in.readInt();
+                            int kindOrdinal = in.readByte();
+                            int x = in.readInt();
+                            int y = in.readInt();
+                            int z = in.readInt();
+                            UUID target = in.readBoolean()
+                                ? new UUID(in.readLong(), in.readLong()) : null;
+                            boolean offHand = in.readBoolean();
+                            if (kindOrdinal >= 0 && kindOrdinal < kinds.length) {
+                                take.uses.add(new ActorUse(tick, kinds[kindOrdinal],
+                                    x, y, z, target, offHand));
+                            }
+                        }
+                    } catch (EOFException shortFile) {
+                        // A v29 file truncated after the sounds still loads
+                        // with whatever uses parsed.
+                    }
+                }
+                // Version 30: placed-entity spawns. Older files end before
+                // the section and load with no spawns.
+                if (version >= 30) {
+                    try {
+                        int spawnCount = in.readInt();
+                        if (spawnCount < 0 || spawnCount > MAX_SMALL_ENTRIES) {
+                            throw new IOException("Take declares " + spawnCount
+                                + " spawns; the take is truncated or was written by an incompatible build");
+                        }
+                        for (int i = 0; i < spawnCount; i++) {
+                            int tick = in.readInt();
+                            String entityId = in.readUTF();
+                            double x = in.readDouble();
+                            double y = in.readDouble();
+                            double z = in.readDouble();
+                            float yaw = in.readFloat();
+                            float pitch = in.readFloat();
+                            String nbt = in.readUTF();
+                            take.spawns.add(new ActorSpawn(tick,
+                                entityId.isEmpty() ? null : entityId, x, y, z,
+                                yaw, pitch, nbt.isEmpty() ? null : nbt));
+                        }
+                    } catch (EOFException shortFile) {
+                        // A v30 file truncated after the uses still loads
+                        // with whatever spawns parsed.
                     }
                 }
             } catch (EOFException shortFile) {

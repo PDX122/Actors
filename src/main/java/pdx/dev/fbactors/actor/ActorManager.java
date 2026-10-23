@@ -78,6 +78,12 @@ public final class ActorManager {
     private static final Set<UUID> SHOT_REPEAT_WARNED = new HashSet<>();
 
     /**
+     * Takes whose spawn phase has already complained about a repeated tick.
+     * Same keying as SHOT_REPEAT_WARNED: take id, not Actor, so no pin.
+     */
+    private static final Set<UUID> SPAWN_REPEAT_WARNED = new HashSet<>();
+
+    /**
      * The gear loadout last broadcast per take, so a wardrobe change made
      * mid-playback re-runs the equipment pass (and its broadcast) on the tick
      * it lands instead of waiting for the take's next recorded equipment
@@ -253,7 +259,68 @@ public final class ActorManager {
         MorphApplier.forget(actor.clone());
         GearApplier.forget(actor.clone());
         LAST_GEAR_SENT.remove(actor.take.id);
+        discardSpawns(server, actor);
         actor.despawn();
+    }
+
+    /**
+     * Discards all world entities this actor's playback spawned.
+     *
+     * <p>Best-effort: a stolen boat or missing UUID is skipped, never fatal.
+     * Called on despawn so takes leaving the timeline do not litter the
+     * replay world with orphaned boats and frames.
+     */
+    private static void discardSpawns(@Nullable ReplayServer server, Actor actor) {
+        if (actor.spawnedEntities().isEmpty()) {
+            return;
+        }
+        if (server != null) {
+            for (UUID id : new java.util.ArrayList<>(actor.spawnedEntities().keySet())) {
+                try {
+                    ServerLevel level = server.getLevel(actor.dimensionKey());
+                    if (level == null) {
+                        continue;
+                    }
+                    Entity e = Compat.entityByUuid(level, id);
+                    if (e != null && !e.isRemoved()) {
+                        e.discard();
+                    }
+                } catch (RuntimeException | LinkageError ignored) {
+                }
+            }
+        }
+        actor.spawnedEntities().clear();
+        SPAWN_REPEAT_WARNED.remove(actor.take.id);
+    }
+
+    /**
+     * Discards spawns whose tick is now after the playhead.
+     *
+     * <p>Scrub-backwards convergence: entities placed at ticks the playhead
+     * left behind go away, entities at or before it stay (re-latch, not
+     * re-spawn, is what makes back-and-forth scrubbing converge). Runs on
+     * every tick, not just fresh ones, because a scrub can land on an
+     * already-driven tick.
+     */
+    private static void pruneSpawns(ServerLevel level, Actor actor, int takeTick) {
+        if (actor.spawnedEntities().isEmpty()) {
+            return;
+        }
+        java.util.Iterator<Map.Entry<UUID, Integer>> it =
+            actor.spawnedEntities().entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<UUID, Integer> entry = it.next();
+            if (entry.getValue() > takeTick) {
+                try {
+                    Entity e = Compat.entityByUuid(level, entry.getKey());
+                    if (e != null && !e.isRemoved()) {
+                        e.discard();
+                    }
+                } catch (RuntimeException | LinkageError ignored) {
+                }
+                it.remove();
+            }
+        }
     }
 
     /**
@@ -651,6 +718,61 @@ public final class ActorManager {
     }
 
     /**
+     * Replays discrete uses as timed arm swings of the correct hand.
+     *
+     * <p>Idempotent animation only, so no scrub latch: re-running a swing
+     * replays an animation and nothing else. World fallout (door state,
+     * container open, mount) replays through its own track.
+     */
+    private static void fireUses(ServerLevel level, Actor actor, int takeTick) {
+        if (!actor.take.hasUseAt(takeTick)) {
+            return;
+        }
+        ActorClonePlayer clone = actor.clone();
+        if (clone == null) {
+            return;
+        }
+        for (pdx.dev.fbactors.take.ActorUse use : actor.take.usesAt(takeTick)) {
+            Compat.swing(clone,
+                use.offHand() ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND);
+        }
+    }
+
+    /**
+     * Replays placed-entity spawns, once per take tick.
+     *
+     * <p>Latched like shots: a repeated tick is a scrub, not a new tick, and
+     * re-running it must not put a second boat in the world. Spawned UUIDs
+     * are tracked on the actor for scrub-backwards pruning and despawn
+     * cleanup. Sounds are gated on forward pass only.
+     */
+    private static void fireSpawns(ServerLevel level, Actor actor, int takeTick) {
+        if (!actor.take.hasSpawnAt(takeTick)) {
+            return;
+        }
+        if (takeTick == actor.lastAppliedTakeTick()) {
+            if (SPAWN_REPEAT_WARNED.add(actor.take.id)) {
+                pdx.dev.fbactors.FlashbackActors.LOGGER.warn(
+                    "Actor '{}' re-spawned {} entit(ies) for take tick {}; treating it as a scrub",
+                    actor.take.name, actor.take.spawnsAt(takeTick).size(), takeTick);
+            }
+            return;
+        }
+        for (pdx.dev.fbactors.take.ActorSpawn spawn : actor.take.spawnsAt(takeTick)) {
+            try {
+                Entity e = Compat.spawnEntityFromRecord(level, spawn);
+                if (e != null) {
+                    actor.trackSpawn(e.getUUID(), takeTick);
+                }
+            } catch (RuntimeException | LinkageError ex) {
+                pdx.dev.fbactors.FlashbackActors.LOGGER.warn(
+                    "Actor '{}' failed to spawn {} at take tick {}",
+                    actor.take.name, spawn.entityId(), takeTick);
+            }
+        }
+    }
+
+    /**
      * Computes the take tick position for a given base tick and speed multiplier.
      *
      * <p>This is the single point where the speed multiplier is applied to
@@ -857,6 +979,7 @@ logCycle(actor, "despawned", "dead-past-linger deathTick=" + deathTick, takeTick
             // arrow spawns from the previous tick's position; after publish and it
             // exists before the tick that moved the shooter was accounted for.
             fireShots(level, actor, clone, takeTick);
+            fireSpawns(level, actor, takeTick);
 
             actor.sim().publish(clone, takeTick);
         } else {
@@ -912,11 +1035,16 @@ logCycle(actor, "despawned", "dead-past-linger deathTick=" + deathTick, takeTick
         }
 
 
+        // Scrub pruning runs on every tick, not just fresh ones: a seek can
+        // land on an already-driven tick whose spawns are now in the future.
+        pruneSpawns(level, actor, takeTick);
+
         if (takeTick != actor.lastAppliedTakeTick()) {
             MiningAnimation.update(server, actor, takeTick);
             applyContainers(server, level, actor, takeTick);
             applySounds(level, actor, takeTick);
             fireEvents(server, level, actor, takeTick);
+            fireUses(level, actor, takeTick);
 
             if (!dead) {
                 applyConditioning(server, clone, actor.take, takeTick, simulated);

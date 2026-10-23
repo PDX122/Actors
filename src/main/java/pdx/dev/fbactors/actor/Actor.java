@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 public final class Actor {
 
@@ -38,6 +39,16 @@ public final class Actor {
     private int nextMiningId = MINING_ID_START;
     private final Map<BlockPos, Integer> miningIds = new HashMap<>();
     private final Map<BlockPos, Integer> miningStages = new HashMap<>();
+
+    /**
+     * World entities this actor's playback spawned, keyed by entity UUID to
+     * the take tick that spawned them.
+     *
+     * <p>Used to discard spawns on scrub-backwards (entities whose spawn tick
+     * is now after the playhead go away) and on despawn. UUID, not id:
+     * session-unique and resolvable via Compat.entityByUuid.
+     */
+    private final Map<UUID, Integer> spawnedEntities = new HashMap<>();
 
     public Actor(ActorTake take) {
         this.take = take;
@@ -132,6 +143,17 @@ public final class Actor {
             this.lastAppliedBlockTick = Integer.MIN_VALUE;
             this.sim.reset();
         }
+        this.spawnedEntities.clear();
+    }
+
+    public void trackSpawn(UUID entityUuid, int takeTick) {
+        if (entityUuid != null) {
+            this.spawnedEntities.put(entityUuid, takeTick);
+        }
+    }
+
+    public Map<UUID, Integer> spawnedEntities() {
+        return this.spawnedEntities;
     }
 
 

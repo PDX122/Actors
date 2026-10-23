@@ -46,6 +46,8 @@ public final class ClipEditor {
         first.miningStates.removeIf(m -> m.tick() - source.startTick == splitPoint);
         first.rides.removeIf(r -> r.tick() - source.startTick == splitPoint);
         first.sounds.removeIf(s -> s.tick() - source.startTick == splitPoint);
+        first.uses.removeIf(u -> u.tick() - source.startTick == splitPoint);
+        first.spawns.removeIf(s -> s.tick() - source.startTick == splitPoint);
         first.hits.removeIf(h ->
             h.tick() + source.offsetTicks - source.startTick == splitPoint);
         first.deaths.removeIf(d ->
@@ -276,9 +278,34 @@ public final class ClipEditor {
         }
 
 
+        List<ActorUse> uses = new ArrayList<>();
+        for (ActorUse use : source.uses) {
+            int takeRelative = use.tick() - source.startTick;
+            if (inRange(takeRelative, sourceLength) && include.test(takeRelative)) {
+                uses.add(new ActorUse(
+                    map.applyAsInt(takeRelative) + newStartTick,
+                    use.kind(), use.x(), use.y(), use.z(),
+                    use.target(), use.offHand()));
+            }
+        }
+
+
+        List<ActorSpawn> spawns = new ArrayList<>();
+        for (ActorSpawn spawn : source.spawns) {
+            int takeRelative = spawn.tick() - source.startTick;
+            if (inRange(takeRelative, sourceLength) && include.test(takeRelative)) {
+                spawns.add(new ActorSpawn(
+                    map.applyAsInt(takeRelative) + newStartTick,
+                    spawn.entityId(), spawn.x(), spawn.y(), spawn.z(),
+                    spawn.yaw(), spawn.pitch(), spawn.nbt()));
+            }
+        }
+
+
         ActorTake take = new ActorTake(UUID.randomUUID(), newName, source.dimension, newStartTick,
             frames, events, equipment, hits, deaths, blocks, voices, vitals, mining, effects, shots,
-            blockEntities, containers, miningStates, subtitles, new ArrayList<>(), rides, sounds);
+            blockEntities, containers, miningStates, subtitles, new ArrayList<>(), rides, sounds,
+            uses, spawns);
 
 
         for (ActorInput input : source.inputs) {

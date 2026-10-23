@@ -12,6 +12,8 @@
 		"MixinLevelBlockChange",
 		"MixinServerLevelBlockEntity",
 		"MixinServerGamePacketListenerContainer",
+		"MixinServerGamePacketListenerUse",
+		"MixinServerLevelSpawn",
 		"MixinContainerOpen",
 		"MixinLevelSound",
 		"MixinServerLevelBlockProgress",

@@ -1156,6 +1156,174 @@ public final class TakeRecorder {
         }
     }
 
+    /**
+     * Records a discrete block right-click.
+     *
+     * <p>Called from the use-item packet mixin at HEAD: intent, not outcome.
+     * The client's arm still swung even when vanilla later rejects the use,
+     * so recording matches what spectators saw. Dedups consecutive identical
+     * uses on the same tick - holding right-click on some blocks sends one
+     * packet per click plus repeats.
+     */
+    public static void captureUseBlock(Level level, BlockPos pos, boolean offHand) {
+        TakeRecorder recorder = FlashbackActors.RECORDER;
+        ActorTake take = recorder.take;
+        ServerPlayer viewer = recorder.viewer;
+        if (take == null || viewer == null || BlockEdits.isApplying()) {
+            return;
+        }
+        if (viewer.level() != level) {
+            return;
+        }
+        if (!take.uses.isEmpty()) {
+            pdx.dev.fbactors.take.ActorUse last = take.uses.get(take.uses.size() - 1);
+            if (last.tick() == recorder.currentTick
+                && last.kind() == pdx.dev.fbactors.take.ActorUse.Kind.BLOCK
+                && last.x() == pos.getX() && last.y() == pos.getY() && last.z() == pos.getZ()
+                && last.offHand() == offHand) {
+                return;
+            }
+        }
+        take.uses.add(pdx.dev.fbactors.take.ActorUse.block(
+            recorder.currentTick, pos.getX(), pos.getY(), pos.getZ(), offHand));
+    }
+
+    /**
+     * Records a discrete air right-click (eat, bow draw, pearl throw).
+     */
+    public static void captureUseAir(Level level, boolean offHand) {
+        TakeRecorder recorder = FlashbackActors.RECORDER;
+        ActorTake take = recorder.take;
+        ServerPlayer viewer = recorder.viewer;
+        if (take == null || viewer == null || BlockEdits.isApplying()) {
+            return;
+        }
+        if (viewer.level() != level) {
+            return;
+        }
+        if (!take.uses.isEmpty()) {
+            pdx.dev.fbactors.take.ActorUse last = take.uses.get(take.uses.size() - 1);
+            if (last.tick() == recorder.currentTick
+                && last.kind() == pdx.dev.fbactors.take.ActorUse.Kind.AIR
+                && last.offHand() == offHand) {
+                return;
+            }
+        }
+        take.uses.add(pdx.dev.fbactors.take.ActorUse.air(recorder.currentTick, offHand));
+    }
+
+    /**
+     * Records a discrete entity right-click. Null target means attack, which
+     * is already covered by the attack callback path - skip to avoid doubles.
+     */
+    public static void captureUseEntity(Level level, @Nullable UUID target, boolean offHand) {
+        if (target == null) {
+            return;
+        }
+        TakeRecorder recorder = FlashbackActors.RECORDER;
+        ActorTake take = recorder.take;
+        ServerPlayer viewer = recorder.viewer;
+        if (take == null || viewer == null || BlockEdits.isApplying()) {
+            return;
+        }
+        if (viewer.level() != level) {
+            return;
+        }
+        if (!take.uses.isEmpty()) {
+            pdx.dev.fbactors.take.ActorUse last = take.uses.get(take.uses.size() - 1);
+            if (last.tick() == recorder.currentTick
+                && last.kind() == pdx.dev.fbactors.take.ActorUse.Kind.ENTITY
+                && target.equals(last.target())
+                && last.offHand() == offHand) {
+                return;
+            }
+        }
+        take.uses.add(pdx.dev.fbactors.take.ActorUse.entity(
+            recorder.currentTick, target, offHand));
+    }
+
+    /**
+     * Records a performer-placed entity seen entering the world.
+     *
+     * <p>Called from the addFreshEntity hook with the real entity: measured
+     * position, facing, full NBT. Attribution comes from recency - a use in
+     * the last 3 ticks by the recording viewer within 8 blocks - not from the
+     * entity itself, which carries no placer. Uncorrelated spawns are not
+     * recorded; recording the wrong thing is worse than recording nothing.
+     */
+    public static void captureSpawn(ServerLevel level, Entity entity) {
+        TakeRecorder recorder = FlashbackActors.RECORDER;
+        ActorTake take = recorder.take;
+        ServerPlayer viewer = recorder.viewer;
+        if (take == null || viewer == null || BlockEdits.isApplying()) {
+            return;
+        }
+        if (viewer.level() != level) {
+            return;
+        }
+        String entityId;
+        try {
+            var key = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE
+                .getKey(entity.getType());
+            entityId = key == null ? null : key.toString();
+        } catch (RuntimeException | LinkageError e) {
+            return;
+        }
+        if (entityId == null || !isSpawnTrackId(entityId)) {
+            return;
+        }
+        double dx = entity.getX() - viewer.getX();
+        double dy = entity.getY() - viewer.getY();
+        double dz = entity.getZ() - viewer.getZ();
+        if (dx * dx + dy * dy + dz * dz > 64.0) {
+            return;
+        }
+        boolean recentUse = false;
+        for (int i = take.uses.size() - 1; i >= 0; i--) {
+            pdx.dev.fbactors.take.ActorUse use = take.uses.get(i);
+            if (recorder.currentTick - use.tick() > 3) {
+                break;
+            }
+            recentUse = true;
+            break;
+        }
+        if (!recentUse) {
+            return;
+        }
+        String nbt = Compat.entityNbt(entity);
+        take.spawns.add(new pdx.dev.fbactors.take.ActorSpawn(
+            recorder.currentTick, entityId,
+            entity.getX(), entity.getY(), entity.getZ(),
+            entity.getYRot(), entity.getXRot(), nbt));
+    }
+
+    /**
+     * Whether this registry id is one of the six spawn-track families.
+     *
+     * <p>Matched on the path so boat/minecart variants need no schema change:
+     * any {@code *_boat}, {@code *_raft}, or path containing
+     * {@code minecart} qualifies, plus the four exact singles. Unknown or
+     * modded ids degrade to unrecorded, never to a broken take.
+     */
+    public static boolean isSpawnTrackId(String entityId) {
+        if (entityId == null || entityId.isEmpty()) {
+            return false;
+        }
+        int slash = entityId.indexOf(':');
+        String path = slash >= 0 ? entityId.substring(slash + 1) : entityId;
+        if (path.equals("armor_stand") || path.equals("painting")
+            || path.equals("item_frame") || path.equals("glow_item_frame")
+            || path.equals("end_crystal")) {
+            return true;
+        }
+        if (path.endsWith("_boat") || path.endsWith("_chest_boat")
+            || path.endsWith("_raft") || path.endsWith("_chest_raft")
+            || path.contains("boat") || path.contains("raft")) {
+            return true;
+        }
+        return path.contains("minecart");
+    }
+
     @Nullable
     public ActorTake stop() {
         pdx.dev.fbactors.voice.VoiceBuffer.finish();
