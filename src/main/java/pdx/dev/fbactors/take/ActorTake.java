@@ -125,6 +125,25 @@ public final class ActorTake {
     public final List<ActorSound> sounds;
 
     /**
+     * Discrete right-clicks the performer did, in absolute replay ticks.
+     *
+     * <p>Indexed take-relative and read through {@link #recorded} like
+     * {@link #containers}. Each entry carries what vanilla was told (block
+     * pos, entity UUID, hand); playback replays a timed swing of the correct
+     * hand. See {@link ActorUse} for why this is separate from events.
+     */
+    public final List<ActorUse> uses;
+
+    /**
+     * Performer-placed entities, in absolute replay ticks.
+     *
+     * <p>Indexed take-relative and read through {@link #recorded} like
+     * {@link #rides}. Each entry is a measured spawn with opaque NBT;
+     * playback re-spawns it. See {@link ActorSpawn} for capture semantics.
+     */
+    public final List<ActorSpawn> spawns;
+
+    /**
      * Continuous mining state snapshots, in take ticks.
      *
      * <p>Indexed take-relative and read through {@link #recorded}. Each entry
@@ -239,6 +258,7 @@ public final class ActorTake {
             new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
             new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
             new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
+            new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
             new ArrayList<>(), new ArrayList<>());
     }
 
@@ -249,7 +269,8 @@ public final class ActorTake {
         this(id, name, dimension, startTick, frames, events, equipment, hits, deaths,
             new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
             new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
-            new ArrayList<>(), new ArrayList<>());
+            new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
+            new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
     }
 
     public ActorTake(UUID id, String name, String dimension, int startTick,
@@ -264,6 +285,7 @@ public final class ActorTake {
                      List<ActorMiningState> miningStates) {
         this(id, name, dimension, startTick, frames, events, equipment, hits, deaths, blocks,
             voices, vitals, mining, effects, shots, blockEntities, containers, miningStates,
+            new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
             new ArrayList<>(), new ArrayList<>());
     }
 
@@ -280,7 +302,8 @@ public final class ActorTake {
                      List<ActorSubtitle> subtitles) {
         this(id, name, dimension, startTick, frames, events, equipment, hits, deaths, blocks,
             voices, vitals, mining, effects, shots, blockEntities, containers, miningStates,
-            subtitles, new ArrayList<>(), new ArrayList<>());
+            subtitles, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
+            new ArrayList<>(), new ArrayList<>());
     }
 
     public ActorTake(UUID id, String name, String dimension, int startTick,
@@ -297,7 +320,8 @@ public final class ActorTake {
                      List<ActorVisibility> hiddenRanges) {
         this(id, name, dimension, startTick, frames, events, equipment, hits, deaths, blocks,
             voices, vitals, mining, effects, shots, blockEntities, containers, miningStates,
-            subtitles, hiddenRanges, new ArrayList<>());
+            subtitles, hiddenRanges, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
+            new ArrayList<>());
     }
 
     public ActorTake(UUID id, String name, String dimension, int startTick,
@@ -315,7 +339,7 @@ public final class ActorTake {
                      List<ActorRide> rides) {
         this(id, name, dimension, startTick, frames, events, equipment, hits, deaths, blocks,
             voices, vitals, mining, effects, shots, blockEntities, containers, miningStates,
-            subtitles, hiddenRanges, rides, new ArrayList<>());
+            subtitles, hiddenRanges, rides, new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
     }
 
     public ActorTake(UUID id, String name, String dimension, int startTick,
@@ -332,6 +356,27 @@ public final class ActorTake {
                      List<ActorVisibility> hiddenRanges,
                      List<ActorRide> rides,
                      List<ActorSound> sounds) {
+        this(id, name, dimension, startTick, frames, events, equipment, hits, deaths, blocks,
+            voices, vitals, mining, effects, shots, blockEntities, containers, miningStates,
+            subtitles, hiddenRanges, rides, sounds, new ArrayList<>(), new ArrayList<>());
+    }
+
+    public ActorTake(UUID id, String name, String dimension, int startTick,
+                     List<ActorFrame> frames, List<ActorEvent> events,
+                     List<ActorEquip> equipment, List<ActorHit> hits,
+                     List<ActorDeath> deaths, List<ActorBlockEdit> blocks,
+                     List<ActorVoiceLine> voices, List<ActorVitals> vitals,
+                     List<ActorMining> mining, List<ActorEffect> effects,
+                     List<ActorShot> shots,
+                     List<ActorBlockEntityEdit> blockEntities,
+                     List<ActorContainerInteraction> containers,
+                     List<ActorMiningState> miningStates,
+                     List<ActorSubtitle> subtitles,
+                     List<ActorVisibility> hiddenRanges,
+                     List<ActorRide> rides,
+                     List<ActorSound> sounds,
+                     List<ActorUse> uses,
+                     List<ActorSpawn> spawns) {
         this.id = id;
         this.name = name;
         this.dimension = dimension;
@@ -354,6 +399,8 @@ public final class ActorTake {
         this.hiddenRanges = hiddenRanges;
         this.rides = rides;
         this.sounds = sounds;
+        this.uses = uses;
+        this.spawns = spawns;
         this.inputs = new ArrayList<>();
     }
 
@@ -723,7 +770,8 @@ public final class ActorTake {
             new ArrayList<>(this.blockEntities), new ArrayList<>(this.containers),
             new ArrayList<>(this.miningStates), new ArrayList<>(this.subtitles),
             new ArrayList<>(this.hiddenRanges), new ArrayList<>(this.rides),
-            new ArrayList<>(this.sounds));
+            new ArrayList<>(this.sounds), new ArrayList<>(this.uses),
+            new ArrayList<>(this.spawns));
         copy.skinName = this.skinName;
         copy.offsetTicks = this.offsetTicks;
         copy.trimIn = this.trimIn;
@@ -1040,6 +1088,67 @@ public final class ActorTake {
         int wanted = recorded(takeTick);
         for (ActorSound sound : this.sounds) {
             if (sound.tick() == wanted) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Every discrete use that happened on this tick.
+     *
+     * <p>Discrete events like {@link #ridesAt}: everything at exactly the
+     * tick replays, in record order. A performer can right-click a door and
+     * eat on the same tick only in theory; the list keeps the general case.
+     */
+    public List<ActorUse> usesAt(int takeTick) {
+        int wanted = recorded(takeTick);
+        List<ActorUse> out = new ArrayList<>();
+        for (ActorUse use : this.uses) {
+            if (use.tick() == wanted) {
+                out.add(use);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Whether any discrete use exists at exactly this tick.
+     */
+    public boolean hasUseAt(int takeTick) {
+        int wanted = recorded(takeTick);
+        for (ActorUse use : this.uses) {
+            if (use.tick() == wanted) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Every placed entity spawned on this tick.
+     *
+     * <p>Discrete creations like {@link #soundsAt}: everything at exactly
+     * the tick replays, in record order.
+     */
+    public List<ActorSpawn> spawnsAt(int takeTick) {
+        int wanted = recorded(takeTick);
+        List<ActorSpawn> out = new ArrayList<>();
+        for (ActorSpawn spawn : this.spawns) {
+            if (spawn.tick() == wanted) {
+                out.add(spawn);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Whether any placed entity exists at exactly this tick.
+     */
+    public boolean hasSpawnAt(int takeTick) {
+        int wanted = recorded(takeTick);
+        for (ActorSpawn spawn : this.spawns) {
+            if (spawn.tick() == wanted) {
                 return true;
             }
         }

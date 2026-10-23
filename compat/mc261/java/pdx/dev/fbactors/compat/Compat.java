@@ -1554,4 +1554,14 @@ private static void driveWalkAnimation(UUID id, Entity actor, LivingEntity mob,
         }
     }
 
+    public static net.minecraft.core.BlockPos useOnPos(net.minecraft.network.protocol.game.ServerboundUseItemOnPacket packet) { return packet.getHitResult().getBlockPos(); }
+    public static boolean useOnOffHand(net.minecraft.network.protocol.game.ServerboundUseItemOnPacket packet) { return packet.getHand() == net.minecraft.world.InteractionHand.OFF_HAND; }
+    public static boolean useItemOffHand(net.minecraft.network.protocol.game.ServerboundUseItemPacket packet) { return packet.getHand() == net.minecraft.world.InteractionHand.OFF_HAND; }
+    public static java.util.UUID interactTarget(net.minecraft.network.protocol.game.ServerboundInteractPacket packet, net.minecraft.server.level.ServerLevel level) { try { net.minecraft.world.entity.Entity e = level.getEntity(packet.entityId()); return e == null ? null : e.getUUID(); } catch (Exception ex) { return null; } }
+    public static boolean interactOffHand(net.minecraft.network.protocol.game.ServerboundInteractPacket packet) { try { return packet.hand() == net.minecraft.world.InteractionHand.OFF_HAND; } catch (Exception ex) { return false; } }
+    public static boolean interactIsAttack(net.minecraft.network.protocol.game.ServerboundInteractPacket packet) { return false; }
+    public static String entityTypeId(net.minecraft.world.entity.Entity entity) { try { var key = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()); return key == null ? null : key.toString(); } catch (Exception ex) { return null; } }
+    public static String entityNbt(net.minecraft.world.entity.Entity entity) { return ""; }
+    public static net.minecraft.world.entity.Entity spawnEntityFromRecord(net.minecraft.server.level.ServerLevel level, pdx.dev.fbactors.take.ActorSpawn spawn) { if (spawn == null || spawn.entityId() == null) return null; try { net.minecraft.resources.Identifier id = net.minecraft.resources.Identifier.tryParse(spawn.entityId()); if (id == null) return null; net.minecraft.world.entity.EntityType<?> type = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getValue(id); if (type == null) return null; net.minecraft.world.entity.Entity e = type.create(level, net.minecraft.world.entity.EntitySpawnReason.COMMAND); if (e == null) return null; e.snapTo(spawn.x(), spawn.y(), spawn.z(), spawn.yaw(), spawn.pitch()); pdx.dev.fbactors.actor.BlockEdits.beginApply(); try { level.addFreshEntity(e); } finally { pdx.dev.fbactors.actor.BlockEdits.endApply(); } return e; } catch (Exception ex) { return null; } }
+
 }
