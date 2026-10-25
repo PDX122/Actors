@@ -993,7 +993,9 @@ logCycle(actor, "despawned", "dead-past-linger deathTick=" + deathTick, takeTick
     applyDeathFall(level, clone, frame, takeTick, deathTick);
         }
 
-        syncHead(server, clone);
+        if (!pdx.dev.fbactors.settings.FbSettings.settings().actorPacketMovement) {
+            syncHead(server, clone);
+        }
         applyHealth(actor, clone, takeTick, simulated, dead);
         if (dead) {
    clone.setPose(Pose.DYING);

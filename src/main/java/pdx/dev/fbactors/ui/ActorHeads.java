@@ -18,10 +18,11 @@ public final class ActorHeads {
     }
 
     public static void draw(ImDrawList drawList, UUID id, float x, float y, float size, int tint) {
+        if (size <= 0) return;
         long handle = 0L;
         try {
             handle = Compat.headTexture(id);
-        } catch (Exception ignored) {
+        } catch (Exception | LinkageError ignored) {
         }
 
         if (handle == 0L) {

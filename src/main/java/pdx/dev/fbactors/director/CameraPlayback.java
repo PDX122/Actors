@@ -53,10 +53,6 @@ public final class CameraPlayback {
             gracePolls--;
             return;
         }
-        long window = Compat.currentWindowHandle();
-        if (window == 0L) {
-            return;
-        }
 
         if (!active()) {
 
@@ -74,7 +70,7 @@ public final class CameraPlayback {
             driving = true;
             heldAtEngage.clear();
             for (String name : MOVEMENT_KEYS) {
-                if (Compat.keyDown(window, Compat.key(name))) {
+                if (Compat.keyDown(Compat.key(name))) {
                     heldAtEngage.add(name);
                 }
             }
@@ -82,7 +78,7 @@ public final class CameraPlayback {
         }
 
         for (String name : MOVEMENT_KEYS) {
-            if (Compat.keyDown(window, Compat.key(name)) && !heldAtEngage.contains(name)) {
+            if (Compat.keyDown(Compat.key(name)) && !heldAtEngage.contains(name)) {
                 if (release()) {
                     wasActive = false;
                     driving = false;

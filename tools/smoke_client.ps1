@@ -58,9 +58,7 @@ $PassMarkers = @(
 # World-join milestones: the integrated server is up and the player is in.
 # Reaching any of these means every server-side mixin has applied.
 $WorldMarkers = @(
-    'Preparing spawn area',
-    'logged in with entity id',
-    'Joining world'
+    'logged in with entity id'
 )
 
 function Stop-Leftovers {
@@ -106,7 +104,7 @@ $gradleArgs = @("$TaskPath`:runClient", '--console=plain')
 if ($WorldName -ne '') { $gradleArgs += "-PsmokeWorld=$WorldName" }
 $proc = Start-Process -FilePath (Join-Path $Root 'gradlew.bat') `
     -ArgumentList $gradleArgs `
-    -WorkingDirectory $Root -PassThru -WindowStyle Minimized `
+    -WorkingDirectory $Root -PassThru -WindowStyle Hidden `
     -RedirectStandardOutput $GradleLog -RedirectStandardError "$GradleLog.err"
 Write-Host "  launched runClient (pid $($proc.Id)); game window opens, closes itself on verdict."
 if ($WorldName -ne '') { Write-Host "  quickPlay into '$WorldName': PASS needs a world milestone." }

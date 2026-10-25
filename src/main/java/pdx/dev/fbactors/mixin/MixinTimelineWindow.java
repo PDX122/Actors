@@ -52,8 +52,9 @@ public class MixinTimelineWindow {
                                                    int trackMiddleX, CallbackInfo ci) {
         TimelineGeometry geometry = new TimelineGeometry(trackX, width, y + middleY, y + height,
             trackMiddleX, timelineOffset, minTicks, availableTicks, timelineWidth);
+        pdx.dev.fbactors.filters.EffectsTrack.render(geometry, cursorTicks);
         ActorTrack.render(geometry, cursorTicks);
-        if (ActorTrack.isDragging()) {
+        if (ActorTrack.isDragging() || pdx.dev.fbactors.filters.EffectsTrack.isDragging()) {
             dragSelectOrigin = null;
         }
     }
@@ -62,7 +63,9 @@ public class MixinTimelineWindow {
         require = 0)
     private static float fbactors$includeActorRows(float totalTrackHeight) {
         float lineHeight = ImGui.getTextLineHeightWithSpacing() + ImGui.getStyle().getItemSpacingY();
-        return totalTrackHeight + (FlashbackActors.ACTORS.actors().size() + 1) * lineHeight;
+        long lookRows = FlashbackActors.ACTORS.actors().stream().filter(actor -> pdx.dev.fbactors.filters.Effects.timeline()
+            .clips.stream().anyMatch(clip -> actor.take.id.equals(clip.actor))).count();
+        return totalTrackHeight + (FlashbackActors.ACTORS.actors().size() + 2 + lookRows) * lineHeight;
     }
 
     @ModifyArg(method = "renderInner",

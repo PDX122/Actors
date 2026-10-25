@@ -1,0 +1,310 @@
+[
+  {
+    "id": "signal",
+    "name": "Signal",
+    "category": "Optics",
+    "origin": "Actors",
+    "description": "A clean analog monitor with subtle scanlines and edge color separation."
+  },
+  {
+    "id": "bleach",
+    "name": "Bleach",
+    "category": "Cinematic",
+    "origin": "Actors",
+    "description": "Desaturated silver contrast with controlled highlights."
+  },
+  {
+    "id": "silver_screen",
+    "name": "Silver Screen",
+    "category": "Mono",
+    "origin": "Actors",
+    "description": "Luminance-based monochrome with local contrast and a soft shoulder."
+  },
+  {
+    "id": "opal",
+    "name": "Opal",
+    "category": "Cinematic",
+    "origin": "Actors",
+    "description": "Soft pastel color with lifted shadows and pearl highlights."
+  },
+  {
+    "id": "ember",
+    "name": "Ember",
+    "category": "Cinematic",
+    "origin": "Actors",
+    "description": "Warm cinematic highlights, slate shadows and soft highlight glow."
+  },
+  {
+    "id": "aurora",
+    "name": "Aurora",
+    "category": "Cinematic",
+    "origin": "Actors",
+    "description": "Cool shadows, warm highlights and restrained luminous color."
+  },
+  {
+    "id": "daybreak",
+    "name": "Daybreak",
+    "category": "Cinematic",
+    "origin": "Actors",
+    "description": "Peach light, open shadows and a soft highlight shoulder."
+  },
+  {
+    "id": "blue_hour",
+    "name": "Blue Hour",
+    "category": "Cinematic",
+    "origin": "Actors",
+    "description": "Cobalt shadows with protected amber lights."
+  },
+  {
+    "id": "velvet",
+    "name": "Velvet",
+    "category": "Cinematic",
+    "origin": "Actors",
+    "description": "Plum shadows, muted greens and smooth dense blacks."
+  },
+  {
+    "id": "copper",
+    "name": "Copper",
+    "category": "Cinematic",
+    "origin": "Actors",
+    "description": "Copper highlights against restrained petrol shadows."
+  },
+  {
+    "id": "evergreen",
+    "name": "Evergreen",
+    "category": "Cinematic",
+    "origin": "Actors",
+    "description": "Forest green shadows and quiet cream highlights."
+  },
+  {
+    "id": "glacier",
+    "name": "Glacier",
+    "category": "Cinematic",
+    "origin": "Actors",
+    "description": "Clear blue whites and crisp cool contrast."
+  },
+  {
+    "id": "sunprint",
+    "name": "Sunprint",
+    "category": "Film",
+    "origin": "Actors",
+    "description": "Faded golden paper, subdued blue and a gentle toe."
+  },
+  {
+    "id": "roseglass",
+    "name": "Roseglass",
+    "category": "Film",
+    "origin": "Actors",
+    "description": "Rose tinted midtones with pearly highlights."
+  },
+  {
+    "id": "midnight",
+    "name": "Midnight",
+    "category": "Film",
+    "origin": "Actors",
+    "description": "Deep indigo blacks and soft luminous highlights."
+  },
+  {
+    "id": "chalk",
+    "name": "Chalk",
+    "category": "Mono",
+    "origin": "Actors",
+    "description": "High key monochrome with paper white highlights."
+  },
+  {
+    "id": "carbon",
+    "name": "Carbon",
+    "category": "Mono",
+    "origin": "Actors",
+    "description": "Dense neutral black and white with a smooth S curve."
+  },
+  {
+    "id": "blueprint",
+    "name": "Blueprint",
+    "category": "Mono",
+    "origin": "Actors",
+    "description": "Architectural cyan ink on deep navy with bright edges."
+  },
+  {
+    "id": "halation",
+    "name": "Halation",
+    "category": "Optics",
+    "origin": "Actors",
+    "description": "Warm light spill around bright details. Adjustable highlight threshold."
+  },
+  {
+    "id": "diffusion",
+    "name": "Diffusion",
+    "category": "Optics",
+    "origin": "Actors",
+    "description": "A soft optical veil that retains a clear central image."
+  },
+  {
+    "id": "prism",
+    "name": "Prism",
+    "category": "Optics",
+    "origin": "Actors",
+    "description": "Radial color refraction that grows toward the frame edges."
+  },
+  {
+    "id": "inkwash",
+    "name": "Ink Wash",
+    "category": "Illustration",
+    "origin": "Actors",
+    "description": "Luminance contour ink over softly quantized pigment."
+  },
+  {
+    "id": "tessera",
+    "name": "Mosaic",
+    "category": "Illustration",
+    "origin": "Actors",
+    "description": "Flat averaged screen-space blocks. Actor looks follow the visible player silhouette."
+  },
+  {
+    "id": "heatmap",
+    "name": "Heatmap",
+    "category": "Illustration",
+    "origin": "Actors",
+    "description": "A continuous midnight, violet, coral and gold luminance palette."
+  },
+  {
+    "id": "pearl_bloom",
+    "name": "Pearl Bloom",
+    "category": "Optics",
+    "origin": "Actors",
+    "description": "Luminous pearlescent highlights with a controllable bloom veil."
+  },
+  {
+    "id": "contour_light",
+    "name": "Contour Light",
+    "category": "Illustration",
+    "origin": "Actors",
+    "description": "Colored outlines built from local luminance gradients."
+  },
+  {
+    "id": "chromatic_ink",
+    "name": "Chromatic Ink",
+    "category": "Illustration",
+    "origin": "Actors",
+    "description": "A dark print with cyan, magenta and gold channel separations."
+  },
+  {
+    "id": "luma_relief",
+    "name": "Luma Relief",
+    "category": "Illustration",
+    "origin": "Actors",
+    "description": "A directional embossed silver surface from scene edges."
+  },
+  {
+    "id": "honey",
+    "name": "Honey",
+    "category": "Film",
+    "origin": "Actors",
+    "description": "Golden amber midtones with soft cream whites."
+  },
+  {
+    "id": "lavender",
+    "name": "Lavender",
+    "category": "Film",
+    "origin": "Actors",
+    "description": "Muted violet shadows with neutral pale highlights."
+  },
+  {
+    "id": "celestial",
+    "name": "Celestial",
+    "category": "Cinematic",
+    "origin": "Actors",
+    "description": "Electric blue and turquoise shadow color with warm stars."
+  },
+  {
+    "id": "candle",
+    "name": "Candle",
+    "category": "Cinematic",
+    "origin": "Actors",
+    "description": "A rich low light amber grade with warm highlight rolloff."
+  },
+  {
+    "id": "cel_shade",
+    "name": "Cel Shade",
+    "category": "Illustration",
+    "origin": "Actors",
+    "description": "Stepped comic colors with bold ink contours. Tune color bands and ink weight."
+  },
+  {
+    "id": "halftone",
+    "name": "Halftone",
+    "category": "Print",
+    "origin": "Actors",
+    "description": "Cyan, magenta and yellow dot screens on warm paper, with adjustable dot spacing."
+  },
+  {
+    "id": "crosshatch",
+    "name": "Crosshatch",
+    "category": "Print",
+    "origin": "Actors",
+    "description": "Layered diagonal pen strokes that build up in dark areas, with crisp ink edges."
+  },
+  {
+    "id": "risograph",
+    "name": "Risograph",
+    "category": "Print",
+    "origin": "Actors",
+    "description": "Offset indigo and vermilion inks, textured cream paper and a coarse print screen."
+  },
+  {
+    "id": "night_vision",
+    "name": "Night Vision",
+    "category": "Stylized",
+    "origin": "Actors",
+    "description": "Bright phosphor green, lifted dark detail and a restrained surveillance scan pattern."
+  },
+  {
+    "id": "infrared",
+    "name": "Infrared",
+    "category": "Stylized",
+    "origin": "Actors",
+    "description": "False-color foliage in hot coral and pink against cyan skies and pale highlights."
+  },
+  {
+    "id": "duotone",
+    "name": "Duotone",
+    "category": "Print",
+    "origin": "Actors",
+    "description": "Deep indigo shadows and electric coral highlights in a graphic two-ink print."
+  },
+  {
+    "id": "solarize",
+    "name": "Solarize",
+    "category": "Stylized",
+    "origin": "Actors",
+    "description": "Partial photographic tone reversal with metallic cyan and warm inverted highlights."
+  },
+  {
+    "id": "arcade",
+    "name": "Arcade",
+    "category": "Pixel",
+    "origin": "Actors",
+    "description": "Four-color handheld palette with an ordered pixel dither and adjustable pixel size."
+  },
+  {
+    "id": "selective_red",
+    "name": "Red Accent",
+    "category": "Stylized",
+    "origin": "Actors",
+    "description": "Keeps vivid reds and warm orange accents against a dense silver monochrome image."
+  },
+  {
+    "id": "neon_wire",
+    "name": "Neon Wire",
+    "category": "Illustration",
+    "origin": "Actors",
+    "description": "Electric cyan and magenta contours against a dark violet image, with adjustable glow."
+  },
+  {
+    "id": "anamorphic",
+    "name": "Anamorphic",
+    "category": "Optics",
+    "origin": "Actors",
+    "description": "Long blue light streaks from bright details, with adjustable reach and strength."
+  }
+]

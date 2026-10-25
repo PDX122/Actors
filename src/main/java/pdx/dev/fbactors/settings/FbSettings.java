@@ -18,6 +18,8 @@ public final class FbSettings {
 
     public boolean combatEnabled = false;
 
+    public boolean actorPacketMovement = true;
+
 
     public boolean hostDamageEnabled = false;
 

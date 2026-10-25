@@ -1036,6 +1036,10 @@ def main() -> int:
                     "target (typo'd descriptor hiding behind require = 0?)"
                 )
 
+    from verify_actor_packets import verify as verify_actor_packets
+    failures.extend(verify_actor_packets(use_live and javap is not None))
+    from verify_looks import verify as verify_looks
+    failures.extend(verify_looks(use_live and javap is not None))
     print(f"checked {checked} version target(s)", flush=True)
     if failures:
         print("FAIL:", flush=True)

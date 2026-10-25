@@ -33,6 +33,8 @@ public class MixinEditorMenuBar {
         ThemeMenu.renderMenuItem();
         SubtitleMenu.renderMenuItem();
         FbSettingsMenu.renderMenuItem();
+        pdx.dev.fbactors.filters.LooksMenu.renderMenuItem();
+        if (ImGui.menuItem("Edit look clip...")) pdx.dev.fbactors.filters.EffectsMenu.open();
     }
 
 
@@ -45,6 +47,8 @@ public class MixinEditorMenuBar {
             ThemeMenu.renderMenuItem();
             SubtitleMenu.renderMenuItem();
             FbSettingsMenu.renderMenuItem();
+            pdx.dev.fbactors.filters.LooksMenu.renderMenuItem();
+            if (ImGui.menuItem("Edit look clip...")) pdx.dev.fbactors.filters.EffectsMenu.open();
         }
         addedThisFrame = false;
     }
@@ -52,17 +56,45 @@ public class MixinEditorMenuBar {
 
     @Inject(method = "render", at = @At("RETURN"), require = 0)
     private static void fbactors$frames(CallbackInfo ci) {
-        DirectorMenu.flushPending();
-        CameraPlayback.tick();
-        pdx.dev.fbactors.settings.UiTheme.applyCurrent();
-        pdx.dev.fbactors.station.StationWindow.render();
-        DirectorMenu.render();
-        DirectorShotsWindow.render();
-        ThemeMenu.render();
-        FbSettingsMenu.render();
-        pdx.dev.fbactors.settings.ThemeMakerMenu.render();
-        SubtitleMenu.render();
-        ActorSetupMenu.render();
+        try { DirectorMenu.flushPending(); } catch (Exception | LinkageError e) {
+            pdx.dev.fbactors.FlashbackActors.LOGGER.warn("Director flush failed; skipping frame", e);
+        }
+        try { CameraPlayback.tick(); } catch (Exception | LinkageError e) {
+            pdx.dev.fbactors.FlashbackActors.LOGGER.warn("Camera playback tick failed; skipping frame", e);
+        }
+        try { pdx.dev.fbactors.settings.UiTheme.applyCurrent(); } catch (Exception | LinkageError e) {
+            pdx.dev.fbactors.FlashbackActors.LOGGER.warn("UI theme apply failed; skipping frame", e);
+        }
+        try { pdx.dev.fbactors.station.StationWindow.render(); } catch (Exception | LinkageError e) {
+            pdx.dev.fbactors.FlashbackActors.LOGGER.warn("Station window failed; skipping frame", e);
+        }
+        try { DirectorMenu.render(); } catch (Exception | LinkageError e) {
+            pdx.dev.fbactors.FlashbackActors.LOGGER.warn("Director menu failed; skipping frame", e);
+        }
+        try { DirectorShotsWindow.render(); } catch (Exception | LinkageError e) {
+            pdx.dev.fbactors.FlashbackActors.LOGGER.warn("Director shots window failed; skipping frame", e);
+        }
+        try { ThemeMenu.render(); } catch (Exception | LinkageError e) {
+            pdx.dev.fbactors.FlashbackActors.LOGGER.warn("Theme menu failed; skipping frame", e);
+        }
+        try { FbSettingsMenu.render(); } catch (Exception | LinkageError e) {
+            pdx.dev.fbactors.FlashbackActors.LOGGER.warn("Settings menu failed; skipping frame", e);
+        }
+        try { pdx.dev.fbactors.filters.LooksMenu.renderWindow(); } catch (Exception | LinkageError e) {
+            pdx.dev.fbactors.FlashbackActors.LOGGER.warn("Looks menu failed; skipping frame", e);
+        }
+        try { pdx.dev.fbactors.filters.EffectsMenu.renderWindow(); } catch (Exception | LinkageError e) {
+            pdx.dev.fbactors.FlashbackActors.LOGGER.warn("Effects menu failed; skipping frame", e);
+        }
+        try { pdx.dev.fbactors.settings.ThemeMakerMenu.render(); } catch (Exception | LinkageError e) {
+            pdx.dev.fbactors.FlashbackActors.LOGGER.warn("Theme maker failed; skipping frame", e);
+        }
+        try { SubtitleMenu.render(); } catch (Exception | LinkageError e) {
+            pdx.dev.fbactors.FlashbackActors.LOGGER.warn("Subtitle menu failed; skipping frame", e);
+        }
+        try { ActorSetupMenu.render(); } catch (Exception | LinkageError e) {
+            pdx.dev.fbactors.FlashbackActors.LOGGER.warn("Actor setup menu failed; skipping frame", e);
+        }
     }
 }
 

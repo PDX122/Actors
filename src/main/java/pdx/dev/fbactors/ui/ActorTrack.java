@@ -98,7 +98,7 @@ public final class ActorTrack {
         List<Actor> actors = FlashbackActors.ACTORS.actors();
         ImDrawList drawList = ImGui.getWindowDrawList();
 
-        float textHeight = ImGui.getTextLineHeight();
+        float textHeight = Math.max(1, ImGui.getTextLineHeight());
         float spacingX = ImGui.getStyle().getItemSpacingX();
         float lineHeight = ImGui.getTextLineHeightWithSpacing() + ImGui.getStyle().getItemSpacingY();
 
@@ -108,9 +108,12 @@ public final class ActorTrack {
         for (int i = 0; i < actors.size(); i++) {
             Actor actor = actors.get(i);
             ImGui.pushID(ID_BASE + i);
+            float effectTop = ImGui.getCursorScreenPosY();
             row(actor, geometry, drawList, cursorTicks, textHeight, spacingX, lineHeight, soloing);
+            pdx.dev.fbactors.filters.EffectsTrack.dropTarget(geometry, effectTop, lineHeight, actor.take.id, cursorTicks);
             ImGui.popID();
             ImGui.separator();
+            pdx.dev.fbactors.filters.EffectsTrack.renderActor(geometry, cursorTicks, actor.take.id);
         }
 
         Actor selection = selected;
@@ -197,25 +200,16 @@ public final class ActorTrack {
                 }
             }
             if (ImGui.isItemClicked(1)) {
+                if (!MULTI.contains(actor.take.id)) select(actor);
                 ImGui.openPopup("##ActorPopup");
             }
             ImGui.setItemTooltip(summary(actor));
         }
 
         ImGui.sameLine();
-        float buttonX = geometry.panelRight() - (textHeight + spacingX) * 3.0f;
+        float buttonX = geometry.panelRight() - (textHeight + spacingX) * 2.0f;
         float buttonY = ImGui.getCursorScreenPosY();
 
-        ImGui.setCursorPosX(buttonX - geometry.x());
-        if (ImGui.invisibleButton("##ActorOptions", textHeight, textHeight) || ImGui.isItemClicked(1)) {
-            select(actor);
-            ImGui.openPopup("##ActorPopup");
-        }
-        drawList.addText(buttonX - 2.0f, buttonY, WHITE, ICON_MENU);
-        ImGui.setItemTooltip("Actor options");
-
-        ImGui.sameLine();
-        buttonX += textHeight + spacingX;
         ImGui.setCursorPosX(buttonX - geometry.x());
         if (ImGui.invisibleButton("##ToggleActor", textHeight, textHeight)) {
             boolean before = actor.enabled();
@@ -229,11 +223,11 @@ public final class ActorTrack {
         ImGui.sameLine();
         buttonX += textHeight + spacingX;
         ImGui.setCursorPosX(buttonX - geometry.x());
-        if (ImGui.invisibleButton("##DeleteActor", textHeight, textHeight)) {
+        if (ImGui.invisibleButton("##DeleteActor", textHeight, textHeight) && !actor.take.locked) {
             pendingRemove = actor;
         }
         drawList.addText(buttonX - 2.0f, buttonY, WHITE, ICON_DELETE);
-        ImGui.setItemTooltip("Delete this actor and its take");
+        ImGui.setItemTooltip(actor.take.locked ? "Unlock this track to delete it" : "Delete take (undo available)");
 
         popup(actor, cursorTicks);
     }
@@ -273,110 +267,96 @@ public final class ActorTrack {
         boolean openColour = false;
 
         if (ImGuiHelper.beginPopup("##ActorPopup")) {
-            if (ImGui.menuItem("\ue5d2 Flashback menu")) {
-                select(actor);
-            }
+            ImGui.textDisabled(actor.displayName());
             ImGui.separator();
-            if (ImGui.menuItem("\ue3c9 Rename")) {
-                beginRename(actor);
-            }
-            if (ImGui.menuItem("\ue40a Set colour")) {
-                openColour = true;
-            }
-            if (ImGui.menuItem("Change skin...")) {
-                SkinPicker.open(actor);
-            }
-            if (ImGui.menuItem("Default skin")) {
-                ActorSkinBridge.clear(actor);
-            }
-            if (pdx.dev.fbactors.settings.FbSettings.morphEnabled()) {
-                if (ImGui.menuItem("Change morph...")) {
-                    MorphPicker.open(actor);
-                }
-                if (ImGui.menuItem("Default morph")) {
-                    pdx.dev.fbactors.morph.Morph.store().clear(actor.take.id);
-                    pdx.dev.fbactors.morph.Morph.save();
-                }
-            }
-            ImGui.separator();
-            if (ImGui.menuItem("Duplicate")) {
-                pendingDuplicate = actor;
-            }
-            if (ImGui.menuItem("Move take to playhead")) {
-                int before = actor.offset();
-                actor.setOffset(cursorTicks - actor.take.startTick);
-                UndoStack.pushOffset(actor.take, before, actor.offset());
-                pendingSave = actor.take;
-            }
-            if (ImGui.menuItem("Trim start here")) {
-                int beforeIn = actor.take.trimIn;
-                int beforeOut = actor.take.trimOut;
-                actor.take.trimIn = Math.max(0,
-                    Math.min(actor.take.length() - 1, cursorTicks - actor.offset() - actor.take.startTick));
-                UndoStack.pushTrim(actor.take, beforeIn, beforeOut,
-                    actor.take.trimIn, actor.take.trimOut);
-                pendingSave = actor.take;
-            }
-            if (ImGui.menuItem("Trim end here")) {
-                int beforeIn = actor.take.trimIn;
-                int beforeOut = actor.take.trimOut;
-                actor.take.trimOut = Math.max(0,
-                    Math.min(actor.take.length() - 1, actor.take.endTick() - (cursorTicks - actor.offset())));
-                UndoStack.pushTrim(actor.take, beforeIn, beforeOut,
-                    actor.take.trimIn, actor.take.trimOut);
-                pendingSave = actor.take;
-            }
-            if (ImGui.menuItem("Reset trim")) {
-                int beforeIn = actor.take.trimIn;
-                int beforeOut = actor.take.trimOut;
-                actor.take.resetTrim();
-                UndoStack.pushTrim(actor.take, beforeIn, beforeOut,
-                    actor.take.trimIn, actor.take.trimOut);
-                pendingSave = actor.take;
-            }
-            if (ImGui.menuItem(actor.take.locked ? "Unlock track" : "Lock track")) {
-                boolean before = actor.take.locked;
-                boolean after = !before;
-                actor.take.locked = after;
-                UndoStack.pushEdit(() -> actor.take.locked = before,
-                    () -> actor.take.locked = after);
-                pendingSave = actor.take;
-            }
-            if (ImGui.menuItem("Razor at playhead")) {
-                razorSelectedAt(cursorTicks);
-            }
-            if (ImGui.menuItem("Copy camera keys")) {
-                select(actor);
-                copyKeysSelected();
-            }
-            if (ImGui.menuItem("Paste camera keys at playhead")) {
-                select(actor);
-                pasteKeysSelected(cursorTicks);
-            }
+            if (ImGui.menuItem("Rename...")) beginRename(actor);
+            if (ImGui.menuItem("Duplicate take")) pendingDuplicate = actor;
 
-            ImGui.separator();
-            if (ImGui.menuItem(actor.solo ? "Unsolo" : "Solo")) {
-                boolean value = !actor.solo;
-                UndoStack.pushSolo(UndoStack.cellsOf(
-                    new ArrayList<>(FlashbackActors.ACTORS.actors())),
-                    actor.take.id, value);
-                for (Actor other : FlashbackActors.ACTORS.actors()) {
-                    other.solo = false;
+            if (ImGui.beginMenu("Appearance")) {
+                if (ImGui.menuItem("Track color...")) openColour = true;
+                if (ImGui.menuItem("Choose skin...")) SkinPicker.open(actor);
+                if (ImGui.menuItem("Reset skin")) ActorSkinBridge.clear(actor);
+                if (pdx.dev.fbactors.settings.FbSettings.morphEnabled()) {
+                    ImGui.separator();
+                    if (ImGui.menuItem("Choose morph...")) MorphPicker.open(actor);
+                    if (ImGui.menuItem("Reset morph")) {
+                        pdx.dev.fbactors.morph.Morph.store().clear(actor.take.id);
+                        pdx.dev.fbactors.morph.Morph.save();
+                    }
                 }
+                ImGui.endMenu();
+            }
+            if (ImGui.beginMenu("Timing", !actor.take.locked)) {
+                if (ImGui.menuItem("Move start to playhead")) {
+                    int before = actor.offset();
+                    actor.setOffset(cursorTicks - actor.take.startTick);
+                    UndoStack.pushOffset(actor.take, before, actor.offset());
+                    pendingSave = actor.take;
+                }
+                if (ImGui.menuItem("Trim start to playhead")) {
+                    int beforeIn = actor.take.trimIn;
+                    int beforeOut = actor.take.trimOut;
+                    actor.take.trimIn = pdx.dev.fbactors.take.TakeTrimming.startAt(actor.take, cursorTicks);
+                    UndoStack.pushTrim(actor.take, beforeIn, beforeOut, actor.take.trimIn, actor.take.trimOut);
+                    pendingSave = actor.take;
+                }
+                if (ImGui.menuItem("Trim end to playhead")) {
+                    int beforeIn = actor.take.trimIn;
+                    int beforeOut = actor.take.trimOut;
+                    actor.take.trimOut = pdx.dev.fbactors.take.TakeTrimming.endAt(actor.take, cursorTicks);
+                    UndoStack.pushTrim(actor.take, beforeIn, beforeOut, actor.take.trimIn, actor.take.trimOut);
+                    pendingSave = actor.take;
+                }
+                if (ImGui.menuItem("Reset trims")) {
+                    int beforeIn = actor.take.trimIn;
+                    int beforeOut = actor.take.trimOut;
+                    actor.take.resetTrim();
+                    UndoStack.pushTrim(actor.take, beforeIn, beforeOut, actor.take.trimIn, actor.take.trimOut);
+                    pendingSave = actor.take;
+                }
+                ImGui.separator();
+                if (ImGui.menuItem("Split at playhead")) razorSelectedAt(cursorTicks);
+                ImGui.endMenu();
+            }
+            if (ImGui.beginMenu("Smooth movement",
+                !actor.take.locked && ActorMode.phase() == ActorMode.Phase.IDLE)) {
+                ImGui.textDisabled("Gentle smoothing, strength 50%");
+                smoothMenuItem(actor, "Look only", pdx.dev.fbactors.take.MotionSmoothing.Mode.LOOK);
+                smoothMenuItem(actor, "Horizontal path only", pdx.dev.fbactors.take.MotionSmoothing.Mode.PATH);
+                smoothMenuItem(actor, "Look and horizontal path", pdx.dev.fbactors.take.MotionSmoothing.Mode.ALL);
+                ImGui.separator();
+                ImGui.textDisabled("Undo restores the previous motion.");
+                ImGui.endMenu();
+            }
+            if (ImGui.beginMenu("Camera")) {
+                if (ImGui.menuItem("Copy camera keys")) copyKeysSelected();
+                if (ImGui.menuItem("Paste keys at playhead", "", false, !actor.take.locked)) {
+                    pasteKeysSelected(cursorTicks);
+                }
+                ImGui.separator();
+                if (ImGui.menuItem("Spectate actor")) ActorSkinBridge.command("spectate " + actor.take.id);
+                if (ImGui.menuItem("Go to actor")) ActorSkinBridge.command("teleport " + actor.take.id);
+                ImGui.endMenu();
+            }
+            ImGui.separator();
+            if (ImGui.menuItem("Solo actor", "", actor.solo)) {
+                boolean value = !actor.solo;
+                UndoStack.pushSolo(UndoStack.cellsOf(new ArrayList<>(FlashbackActors.ACTORS.actors())),
+                    actor.take.id, value);
+                for (Actor other : FlashbackActors.ACTORS.actors()) other.solo = false;
                 actor.solo = value;
                 pendingSave = actor.take;
             }
-            if (ImGui.menuItem("Spectate")) {
-                ActorSkinBridge.command("spectate " + actor.take.id);
+            if (ImGui.menuItem("Lock track", "", actor.take.locked)) {
+                boolean before = actor.take.locked;
+                boolean after = !before;
+                actor.take.locked = after;
+                UndoStack.pushEdit(() -> actor.take.locked = before, () -> actor.take.locked = after);
+                pendingSave = actor.take;
             }
-            if (ImGui.menuItem("Teleport to")) {
-                ActorSkinBridge.command("teleport " + actor.take.id);
-            }
-
+            if (actor.take.locked) ImGui.textDisabled("Unlock to edit timing or movement.");
             ImGui.separator();
-            if (ImGui.menuItem("\ue92b Delete")) {
-                pendingRemove = actor;
-            }
+            if (ImGui.menuItem("Delete take", "", false, !actor.take.locked)) pendingRemove = actor;
             ImGui.endPopup();
         }
 
@@ -450,6 +430,12 @@ public final class ActorTrack {
         if (rawEnd < laneLeft || rawStart > laneRight) {
             return;
         }
+        if (geometry.clipBottom() <= geometry.clipTop()) {
+            pdx.dev.fbactors.debug.DragDiag.warnRare("actor-lane-clip",
+                "skipped actor lane: rawStart=%.1f rawEnd=%.1f lane=[%.1f,%.1f] clipTop=%.1f clipBottom=%.1f",
+                rawStart, rawEnd, laneLeft, laneRight, geometry.clipTop(), geometry.clipBottom());
+            return;
+        }
 
         drawList.pushClipRect(laneLeft, geometry.clipTop(), laneRight, geometry.clipBottom(), true);
 
@@ -509,10 +495,18 @@ public final class ActorTrack {
                     float amplitude = peak(line.samples());
                     float height = Math.max(1.5f, barHeight * 0.30f * amplitude);
                     int voiceAlpha = muted ? 0x40 : 0xD0;
-                    drawList.addRectFilled(
-                        Math.max(barStart, x), midY - height * 0.5f,
-                        Math.min(barEnd, x + width), midY + height * 0.5f,
-                        ActorColours.pack(140, 220, 255, voiceAlpha), 1.0f);
+                    float vx0 = Math.max(barStart, x);
+                    float vx1 = Math.min(barEnd, x + width);
+                    if (vx1 <= vx0) {
+                        pdx.dev.fbactors.debug.DragDiag.warnRare("waveform-range",
+                            "skipped voice bar: x=%.1f w=%.1f bar=[%.1f,%.1f]",
+                            x, width, barStart, barEnd);
+                    } else {
+                        drawList.addRectFilled(
+                            vx0, midY - height * 0.5f,
+                            vx1, midY + height * 0.5f,
+                            ActorColours.pack(140, 220, 255, voiceAlpha), 1.0f);
+                    }
                     if (!muted) {
                         ActorHeads.draw(drawList, take.id, x, waveTop, barHeight * 0.34f, tint);
                     }
@@ -967,7 +961,10 @@ public final class ActorTrack {
 
         float laneLeft = geometry.laneLeft();
         float laneRight = geometry.laneRight();
-        if (laneRight <= laneLeft) {
+        if (laneRight <= laneLeft || geometry.clipBottom() <= geometry.clipTop()) {
+            pdx.dev.fbactors.debug.DragDiag.warnRare("record-row-clip",
+                "skipped record row: lane=[%.1f,%.1f] clipTop=%.1f clipBottom=%.1f",
+                laneLeft, laneRight, geometry.clipTop(), geometry.clipBottom());
             return;
         }
 
@@ -1012,6 +1009,14 @@ public final class ActorTrack {
         }
         text.append("\ndrag to retime, edges to trim, right-click for options");
         return text.toString();
+    }
+
+    private static void smoothMenuItem(Actor actor, String label,
+                                       pdx.dev.fbactors.take.MotionSmoothing.Mode mode) {
+        if (ImGui.menuItem(label)) {
+            ReplayServer replay = Flashback.getReplayServer();
+            if (replay != null) replay.execute(() -> MotionEdits.apply(actor, 2, 0.5f, mode));
+        }
     }
 
     private static void flush() {

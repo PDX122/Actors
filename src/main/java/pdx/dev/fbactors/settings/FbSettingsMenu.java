@@ -7,8 +7,8 @@ import pdx.dev.fbactors.timer.TakeTimer;
 
 public final class FbSettingsMenu {
 
-    private static final float PANEL_WIDTH = 320.0f;
-    private static final float PANEL_HEIGHT = 420.0f;
+    private static final float PANEL_WIDTH = 440.0f;
+    private static final float PANEL_HEIGHT = 520.0f;
 
     private static boolean open;
 
@@ -49,49 +49,78 @@ public final class FbSettingsMenu {
         if (!open) {
             return;
         }
-        ImGui.setNextWindowSize(PANEL_WIDTH, PANEL_HEIGHT);
+        ImGui.setNextWindowSize(PANEL_WIDTH, PANEL_HEIGHT, imgui.moulberry90.flag.ImGuiCond.FirstUseEver);
         OPEN.set(open);
         if (!ImGui.begin("FBA Settings (Beta)", OPEN)) {
             ImGui.end();
+            if (!OPEN.get()) close();
             return;
         }
         open = OPEN.get();
 
-        renderCombat();
-        ImGui.separator();
-        renderTakeTimer();
-        ImGui.separator();
-        renderCountdown();
-        ImGui.separator();
-        renderVoice();
-        ImGui.separator();
-        renderMorph();
-        ImGui.separator();
-        renderHotkeys();
-        ImGui.separator();
-        renderTheme();
-        ImGui.separator();
-        renderStation();
-        ImGui.separator();
-        renderSubtitles();
-        ImGui.separator();
-        renderSelfTest();
+        if (ImGui.beginTabBar("##ActorSettingsTabs")) {
+            ImGui.pushTextWrapPos(0.0f);
+            if (ImGui.beginTabItem("Recording")) {
+                renderTakeTimer();
+                ImGui.separator();
+                renderCountdown();
+                ImGui.separator();
+                renderMovement();
+                ImGui.separator();
+                renderCombat();
+                ImGui.separator();
+                renderMorph();
+                ImGui.endTabItem();
+            }
+            if (ImGui.beginTabItem("Audio")) {
+                renderVoice();
+                ImGui.separator();
+                renderSubtitles();
+                ImGui.endTabItem();
+            }
+            if (ImGui.beginTabItem("Interface")) {
+                renderHotkeys();
+                ImGui.separator();
+                renderTheme();
+                ImGui.separator();
+                renderStation();
+                if (ImGui.button("Open Looks")) pdx.dev.fbactors.filters.LooksMenu.open();
+                ImGui.endTabItem();
+            }
+            if (ImGui.beginTabItem("Advanced")) {
+                renderSelfTest();
+                ImGui.endTabItem();
+            }
+            ImGui.popTextWrapPos();
+            ImGui.endTabBar();
+        }
 
         ImGui.end();
         open = OPEN.get();
+        if (!open) close();
     }
 
 
+    private static void renderMovement() {
+        FbSettings settings = FbSettings.settings();
+        ImGui.text("Movement");
+        if (ImGui.checkbox("Send actor movement every tick##FbActorPackets", settings.actorPacketMovement)) {
+            settings.actorPacketMovement = !settings.actorPacketMovement;
+        }
+        ImGui.setItemTooltip("Use Minecraft's server tracker every tick for actors. Position, rotation and teleport packets keep one sender.");
+        ImGui.textDisabled("Off uses the normal Minecraft packet cadence.");
+    }
+
     private static void renderCombat() {
         FbSettings settings = FbSettings.settings();
-        if (ImGui.checkbox("Combat (damage and knockback) [Beta]##FbCombat", settings.combatEnabled)) {
+        if (ImGui.checkbox("Actor combat [Beta]##FbCombat", settings.combatEnabled)) {
             settings.combatEnabled = !settings.combatEnabled;
         }
         if (ImGui.isItemHovered()) {
             ImGui.setItemTooltip("BETA. When on, a viewer's punch lands on actors: damage, knockback and hit recording");
         }
         ImGui.textDisabled("When off, actors are scenery. Punches pass through.");
-        if (ImGui.checkbox("Host damage (actors can hurt recorded players) [Beta]##FbHostDamage",
+        if (ImGui.checkbox("Damage recorded players [Beta]##FbHostDamage",
             settings.hostDamageEnabled)) {
             settings.hostDamageEnabled = !settings.hostDamageEnabled;
         }
@@ -106,7 +135,7 @@ public final class FbSettingsMenu {
         FbSettings settings = FbSettings.settings();
         int[] seconds = {settings.takeTimerSeconds};
         ImGui.text("Take timer");
-        ImGui.setNextItemWidth(PANEL_WIDTH - 40.0f);
+        ImGui.setNextItemWidth(-110.0f);
         if (ImGui.sliderInt("Budget##FbTakeTimer", seconds, 0, 300, "%ds")) {
             settings.takeTimerSeconds = Math.max(0, seconds[0]);
             TakeTimer.durationSeconds(settings.takeTimerSeconds);
@@ -124,7 +153,7 @@ public final class FbSettingsMenu {
         FbSettings settings = FbSettings.settings();
         int[] seconds = {Math.max(1, settings.countdownSeconds)};
         ImGui.text("Countdown");
-        ImGui.setNextItemWidth(PANEL_WIDTH - 40.0f);
+        ImGui.setNextItemWidth(-110.0f);
         if (ImGui.sliderInt("Delay##FbCountdown", seconds, 1, 10, "%ds")) {
             settings.countdownSeconds = Math.max(1, seconds[0]);
         }
@@ -180,7 +209,7 @@ public final class FbSettingsMenu {
         UiTheme current = UiTheme.byId(settings.uiTheme);
         ImGui.text("UI theme");
         ImGui.textDisabled("Current: " + current.label());
-        if (ImGui.button("Open Theme Maker##FbOpenThemeMaker", PANEL_WIDTH - 40.0f, 0.0f)) {
+        if (ImGui.button("Open Theme Maker##FbOpenThemeMaker", Math.max(1, ImGui.getContentRegionAvailX()), 0.0f)) {
             ThemeMakerMenu.open();
         }
         if (ImGui.isItemHovered()) {
@@ -214,19 +243,19 @@ public final class FbSettingsMenu {
         ImGui.textDisabled("When off, captions hide and the Subtitles window stays closed.");
 
         float[] scale = {Math.max(0.5f, Math.min(2.0f, settings.subScale))};
-        ImGui.setNextItemWidth(PANEL_WIDTH - 40.0f);
+        ImGui.setNextItemWidth(-110.0f);
         if (ImGui.sliderFloat("Size##FbSubScale", scale, 0.5f, 2.0f, "%.2fx")) {
             settings.subScale = Math.max(0.5f, Math.min(2.0f, scale[0]));
         }
 
-        ImGui.setNextItemWidth(PANEL_WIDTH - 40.0f);
+        ImGui.setNextItemWidth(-110.0f);
         ImGui.colorEdit3("Text##FbSubText", settings.subTextColor);
 
         if (ImGui.checkbox("Outline##FbSubOutline", settings.subOutline)) {
             settings.subOutline = !settings.subOutline;
         }
         if (settings.subOutline) {
-            ImGui.setNextItemWidth(PANEL_WIDTH - 40.0f);
+            ImGui.setNextItemWidth(-110.0f);
             ImGui.colorEdit3("Outline colour##FbSubOutlineColor", settings.subOutlineColor);
         }
         if (ImGui.checkbox("Drop shadow##FbSubShadow", settings.subShadow)) {
@@ -240,21 +269,21 @@ public final class FbSettingsMenu {
             settings.subBackground = !settings.subBackground;
         }
         if (settings.subBackground) {
-            ImGui.setNextItemWidth(PANEL_WIDTH - 40.0f);
+            ImGui.setNextItemWidth(-110.0f);
             ImGui.colorEdit3("Box colour##FbSubBgColor", settings.subBgColor);
             float[] opacity = {settings.subBgOpacity};
-            ImGui.setNextItemWidth(PANEL_WIDTH - 40.0f);
+            ImGui.setNextItemWidth(-110.0f);
             if (ImGui.sliderFloat("Box opacity##FbSubBgOpacity", opacity, 0.0f, 0.9f, "%.2f")) {
                 settings.subBgOpacity = Math.max(0.0f, Math.min(0.9f, opacity[0]));
             }
             int[] padding = {Math.max(0, settings.subPadding)};
-            ImGui.setNextItemWidth(PANEL_WIDTH - 40.0f);
+            ImGui.setNextItemWidth(-110.0f);
             if (ImGui.sliderInt("Box padding##FbSubPad", padding, 0, 16, "%d px")) {
                 settings.subPadding = Math.max(0, Math.min(16, padding[0]));
             }
         }
 
-        ImGui.setNextItemWidth(PANEL_WIDTH - 40.0f);
+        ImGui.setNextItemWidth(-110.0f);
         if (ImGui.beginCombo("Spot##FbSubPos", settings.subPosition == 1 ? "Top" : "Bottom")) {
             if (ImGui.menuItem("Bottom", settings.subPosition == 0)) {
                 settings.subPosition = 0;
@@ -269,28 +298,28 @@ public final class FbSettingsMenu {
             settings.subSpeaker = !settings.subSpeaker;
         }
         if (settings.subSpeaker) {
-            ImGui.setNextItemWidth(PANEL_WIDTH - 40.0f);
+            ImGui.setNextItemWidth(-110.0f);
             ImGui.colorEdit3("Name colour##FbSubSpeakerColor", settings.subSpeakerColor);
         }
 
         int[] fade = {Math.max(0, settings.subFadeTicks)};
-        ImGui.setNextItemWidth(PANEL_WIDTH - 40.0f);
+        ImGui.setNextItemWidth(-110.0f);
         if (ImGui.sliderInt("Fade##FbSubFade", fade, 0, 20, "%d ticks")) {
             settings.subFadeTicks = Math.max(0, Math.min(20, fade[0]));
         }
         int[] maxLines = {Math.max(1, Math.min(4, settings.subMaxLines))};
-        ImGui.setNextItemWidth(PANEL_WIDTH - 40.0f);
+        ImGui.setNextItemWidth(-110.0f);
         if (ImGui.sliderInt("Lines at once##FbSubLines", maxLines, 1, 4, "%d")) {
             settings.subMaxLines = Math.max(1, Math.min(4, maxLines[0]));
         }
         int[] maxWidth = {Math.max(200, Math.min(1200, settings.subMaxWidth))};
-        ImGui.setNextItemWidth(PANEL_WIDTH - 40.0f);
+        ImGui.setNextItemWidth(-110.0f);
         if (ImGui.sliderInt("Wrap width##FbSubWidth", maxWidth, 200, 1200, "%d px")) {
             settings.subMaxWidth = Math.max(200, Math.min(1200, maxWidth[0]));
         }
 
         if (settings.subEnabled) {
-            if (ImGui.button("Open Subtitles##FbOpenSubtitles", PANEL_WIDTH - 40.0f, 0.0f)) {
+            if (ImGui.button("Open Subtitles##FbOpenSubtitles", Math.max(1, ImGui.getContentRegionAvailX()), 0.0f)) {
                 pdx.dev.fbactors.subtitle.SubtitleMenu.open();
             }
             if (ImGui.isItemHovered()) {

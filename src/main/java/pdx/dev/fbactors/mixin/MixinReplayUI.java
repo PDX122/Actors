@@ -19,11 +19,15 @@ public class MixinReplayUI {
             target = "Lcom/moulberry/flashback/editor/ui/windows/TimelineWindow;render()V",
             shift = At.Shift.AFTER))
     private static void fbactors$renderSkinPicker(CallbackInfo ci) {
-        SkinPicker.render();
-        MorphPicker.render();
-
-
-        Hotkey.renderHelp();
+        try { SkinPicker.render(); } catch (Exception | LinkageError e) {
+            pdx.dev.fbactors.FlashbackActors.LOGGER.warn("Skin picker overlay failed; skipping frame", e);
+        }
+        try { MorphPicker.render(); } catch (Exception | LinkageError e) {
+            pdx.dev.fbactors.FlashbackActors.LOGGER.warn("Morph picker overlay failed; skipping frame", e);
+        }
+        try { Hotkey.renderHelp(); } catch (Exception | LinkageError e) {
+            pdx.dev.fbactors.FlashbackActors.LOGGER.warn("Hotkey help overlay failed; skipping frame", e);
+        }
     }
 }
 

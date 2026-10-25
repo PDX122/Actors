@@ -780,6 +780,11 @@ public final class Compat {
         return InputConstants.isKeyDown(key);
     }
 
+    /** Window-independent key poll for per-frame checks (26.3 has no GLFW window). */
+    public static boolean keyDown(int key) {
+        return InputConstants.isKeyDown(key);
+    }
+
     /**
      * Delivers a knockback exactly as vanilla's own damage pipeline would.
      *
@@ -798,6 +803,23 @@ public final class Compat {
 
     public static void swing(LivingEntity entity, InteractionHand hand) {
         entity.swing(hand, SwingAnimation.DEFAULT, true);
+    }
+
+    /**
+     * Starts a swing on a morph-preview mob without touching world state.
+     *
+     * <p>Preview-only: the world puppet path ({@code mirrorSwing}) keeps using
+     * {@link #swing}, which broadcasts to viewers on a server level. The
+     * preview mob is never added to a level and always lives on the client
+     * level, where vanilla {@code LivingEntity.swing} takes no broadcast
+     * branch (the packet send is gated on a server level) and fires no game
+     * event - the call only writes the entity's own swing state. Passing
+     * {@code false} (updateSelf) selects the tracker-only broadcast over
+     * broadcast-and-send, so even a future level swap could not echo the
+     * swing back to a self player.
+     */
+    public static void previewSwing(LivingEntity entity, InteractionHand hand) {
+        entity.swing(hand, SwingAnimation.DEFAULT, false);
     }
 
     public static boolean isSwinging(LivingEntity entity) {
@@ -1172,11 +1194,12 @@ public final class Compat {
         Puppet puppet = PUPPETS.remove(id);
         UNSEEN_TICKS.remove(id);
         LAST_STRIDE_POS.remove(id);
-        SMOOTH_DIST.remove(id);
+        STRIDES.remove(id);
         SEEN.remove(id);
         if (puppet == null || puppet.entity() == null) {
             return;
         }
+        pdx.dev.fbactors.filters.ActorLooks.unalias(puppet.entity().getUUID());
         try {
             if (puppet.entity().level() instanceof ClientLevel at) {
                 at.removeEntity(puppet.entity().getId(), Entity.RemovalReason.DISCARDED);
@@ -1193,7 +1216,7 @@ public final class Compat {
         SEEN.clear();
         UNSEEN_TICKS.clear();
         LAST_STRIDE_POS.clear();
-        SMOOTH_DIST.clear();
+        STRIDES.clear();
         puppetLevel = null;
     }
 
@@ -1246,6 +1269,7 @@ public final class Compat {
                 return;
             }
             fresh.setId(nextPuppetId--);
+            pdx.dev.fbactors.filters.ActorLooks.alias(fresh.getUUID(), id);
             fresh.setNoGravity(true);
             fresh.noPhysics = true;
             fresh.setSilent(true);
@@ -1257,7 +1281,7 @@ public final class Compat {
             PUPPETS.put(id, new Puppet(fresh, info.morphId()));
             // Seeds the stride trail at the actor so the first sync after a
             // (re)spawn measures zero, not the whole gap since the drop.
-            SMOOTH_DIST.put(id, 0.0F);
+            STRIDES.remove(id);
             LAST_STRIDE_POS.put(id, new double[]{actor.getX(), actor.getZ(),
                 actor.getYRot(), actor.getXRot(), actor.getY()});
             puppet = PUPPETS.get(id);
@@ -1282,6 +1306,24 @@ public final class Compat {
      * <p>In 26.2+, {@code EntityType} was renamed {@code EntityTypes} for the
      * holder class; the generic type itself is still {@code EntityType}.
      */
+    public static net.minecraft.world.entity.LivingEntity createMorphPreview(String id) {
+        var client = Minecraft.getInstance();
+        if (client.level == null) return null;
+        var type = resolveType(id);
+        if (type == null) return null;
+        var entity = type.create(client.level, EntitySpawnReason.COMMAND);
+        if (!(entity instanceof net.minecraft.world.entity.LivingEntity living)) return null;
+        // Fresh random identity: type.create already assigns one, but the preview
+        // mob shares the world ClientLevel object, so its UUID must never collide
+        // with a world actor's. Re-rolling here guarantees disjoint identity even
+        // if a future entity factory reuses ids. Field-only write, never added.
+        living.setUUID(UUID.randomUUID());
+        living.setNoGravity(true);
+        living.setSilent(true);
+        if (living instanceof net.minecraft.world.entity.Mob mob) mob.setNoAi(true);
+        return living;
+    }
+
     @Nullable
     private static EntityType<?> resolveType(String morphId) {
         String raw = MorphRegistry.entityIdFor(morphId);
@@ -1398,7 +1440,7 @@ public final class Compat {
 
     /** Last synced actor state per puppet: x, z, yaw, pitch, y. Stride and turn interpolation read it. */
     /** Smoothed per-tick displacement per puppet, for buzz-free stride. */
-    private static final Map<UUID, Float> SMOOTH_DIST = new ConcurrentHashMap<>();
+    private static final Map<UUID, pdx.dev.fbactors.morph.MorphStride> STRIDES = new ConcurrentHashMap<>();
     private static final Map<UUID, double[]> LAST_STRIDE_POS = new ConcurrentHashMap<>();
 
     /**
@@ -1436,49 +1478,10 @@ public final class Compat {
 
 private static void driveWalkAnimation(UUID id, Entity actor, LivingEntity mob,
             float yaw, float pitch) {
-        double x = actor.getX();
-        double y = actor.getY();
-        double z = actor.getZ();
-        float dist = 0.0F;
-        double[] last = LAST_STRIDE_POS.get(id);
-        if (last != null) {
-            double dx = x - last[0];
-            double dz = z - last[1];
-            if (!actor.onGround() && last.length >= 5) {
-                // Airborne: measure in 3D so jumps animate. Vanilla measures
-                // horizontal-only here, which freezes the limbs on a straight-up
-                // jump; a short hop reading as a stride is the better tradeoff.
-                double dy = y - last[4];
-                dist = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
-            } else {
-                dist = (float) Math.sqrt(dx * dx + dz * dz);
-            }
-            // Smooth the raw per-tick displacement: at 20Hz packet stepping the
-            // raw value jitters and the limbs pulse. Halving the gap each tick
-            // keeps full speed within four ticks while killing the buzz.
-            if (dist > 2.0F) {
-                // Teleport, not a stride: the actor crossed the map between
-                // syncs (or returned from a long freeze). Animating it is a
-                // one-frame lunge, so snap to rest instead.
-                SMOOTH_DIST.put(id, 0.0F);
-                LAST_STRIDE_POS.put(id, new double[]{x, z, yaw, pitch, y});
-                pdx.dev.fbactors.morph.WalkDriver.drive(mob, 0.0F);
-                return;
-            }
-            if (dist < 0.02F) {
-                // Standing still: snap to rest so packet jitter does not buzz
-                // the limbs and skating stops dead.
-                dist = 0.0F;
-            }
-            Float was = SMOOTH_DIST.get(id);
-            if (was != null) {
-                dist = was + (dist - was) * 0.65F;
-            }
-        }
-        SMOOTH_DIST.put(id, dist);
-        LAST_STRIDE_POS.put(id, new double[]{x, z, yaw, pitch, y});
-        float targetSpeed = Math.min(dist * 4.0F, 1.0F);
-        pdx.dev.fbactors.morph.WalkDriver.drive(mob, targetSpeed);
+        var stride = STRIDES.computeIfAbsent(id, key -> new pdx.dev.fbactors.morph.MorphStride());
+        var frame = stride.sample(actor.getX(), actor.getY(), actor.getZ(), !actor.onGround());
+        LAST_STRIDE_POS.put(id, new double[]{actor.getX(), actor.getZ(), yaw, pitch, actor.getY()});
+        pdx.dev.fbactors.morph.WalkDriver.driveTo(mob, frame.previousSpeed(), frame.speed(), frame.position());
     }
     /**
      * Sizes the puppet so its drawn height matches the catalogue's player-relative
