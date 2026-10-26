@@ -47,6 +47,7 @@ public final class TakeCommands {
         parent.then(trimReset());
         parent.then(bundle());
         parent.then(speakerColor());
+        parent.then(MotionCommands.command());
     }
 
 
@@ -468,7 +469,7 @@ public final class TakeCommands {
                 + "\" has no frames, so there is nothing to trim.");
             return;
         }
-        int removed = trimIn + trimOut;
+        long removed = (long) trimIn + trimOut;
         if (removed > length - MIN_TRIMMED_LENGTH) {
             ActorArgs.fail(source, "Trimming " + trimIn + " in and " + trimOut
                 + " out would leave " + (length - removed) + " of " + length + " ticks. At least "

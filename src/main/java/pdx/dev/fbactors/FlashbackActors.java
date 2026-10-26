@@ -46,6 +46,13 @@ public class FlashbackActors implements ClientModInitializer {
     public static final String MOD_ID = "fbactors";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
+    /**
+     * Handout build tag, bumped per rebuilt jar so logs identify the exact
+     * binary under test. This is NOT the mod version (stays 0.11.0); it only
+     * appears in the startup log line below.
+     */
+    public static final String BUILD_TAG = "26.3-r5";
+
     public static final ActorManager ACTORS = new ActorManager();
     public static final TakeRecorder RECORDER = new TakeRecorder();
 
@@ -104,7 +111,10 @@ public class FlashbackActors implements ClientModInitializer {
             return InteractionResult.PASS;
         });
 
-        LOGGER.info("Flashback Actors ready");
+        LOGGER.info("Flashback Actors ready [build {}]", BUILD_TAG);
+        if (pdx.dev.fbactors.debug.DragDiag.ENABLED) {
+            LOGGER.info("[FBACTORS-DIAG] drag-drop tracing build: drag lifecycle + guard trips will be logged");
+        }
         pdx.dev.fbactors.util.Watermark.log();
     }
 

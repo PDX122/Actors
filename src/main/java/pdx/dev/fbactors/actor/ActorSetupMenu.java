@@ -16,8 +16,6 @@ public final class ActorSetupMenu {
     private static final float PANEL_HEIGHT = 420.0f;
 
 
-    private static final List<Integer> THRESHOLDS = List.of(-30, -40, -50, -60);
-
     private static boolean open;
 
 
@@ -75,13 +73,20 @@ public final class ActorSetupMenu {
         if (!open) {
             return;
         }
-        ImGui.setNextWindowSize(PANEL_WIDTH, PANEL_HEIGHT);
+        ImGui.setNextWindowSize(PANEL_WIDTH, PANEL_HEIGHT, imgui.moulberry90.flag.ImGuiCond.FirstUseEver);
         OPEN.set(open);
         if (!ImGui.begin("Actor Setup", OPEN)) {
+            open = OPEN.get();
             ImGui.end();
+            if (!open) cancel();
             return;
         }
         open = OPEN.get();
+        if (!open) {
+            ImGui.end();
+            cancel();
+            return;
+        }
 
         renderStep1();
         ImGui.separator();
@@ -97,8 +102,8 @@ public final class ActorSetupMenu {
 
 
     private static void renderStep1() {
-        ImGui.text("What do you want for your actor?");
-        ImGui.textDisabled("Choose the features this actor will use.");
+        ImGui.text("New actor take");
+        ImGui.textWrapped("Set up your audio, then start the countdown. Press R to finish recording.");
 
         if (VoiceSettings.systemEnabled()) {
             if (ImGui.checkbox("Voice##ActorWantVoice", wantVoice[0])) {
@@ -113,26 +118,18 @@ public final class ActorSetupMenu {
 
     private static void renderStep2() {
         ImGui.text("Voice");
-        ImGui.textDisabled("Record a voice line for this actor.");
+        ImGui.textDisabled("Microphone settings");
 
         if (ImGui.checkbox("Voice activation##ActorVoiceActivation", voiceActivation[0])) {
             voiceActivation[0] = !voiceActivation[0];
         }
         if (voiceActivation[0]) {
-            ImGui.setNextItemWidth(PANEL_WIDTH - 40.0f);
+            ImGui.setNextItemWidth(-90.0f);
 
-            if (ImGui.sliderInt("Threshold##ActorVoiceThreshold", threshold,
-                    -60, -30, "%d dB")) {
-                int nearest = THRESHOLDS.get(0);
-                for (int t : THRESHOLDS) {
-                    if (Math.abs(t - threshold[0]) < Math.abs(nearest - threshold[0])) {
-                        nearest = t;
-                    }
-                }
-                threshold[0] = nearest;
-            }
+            ImGui.sliderInt("Threshold##ActorVoiceThreshold", threshold, -60, -20, "%d dB");
+            ImGui.setItemTooltip("Lower values pick up quieter speech. Higher values reject more background noise.");
         }
-        ImGui.setNextItemWidth(PANEL_WIDTH - 40.0f);
+        ImGui.setNextItemWidth(-90.0f);
         if (ImGui.sliderInt("Mic gain##ActorVoiceGain", gainPercent, 10, 200, "%d%%")) {
             gainPercent[0] = Math.max(10, Math.min(200, gainPercent[0]));
         }
@@ -140,17 +137,20 @@ public final class ActorSetupMenu {
             ImGui.setItemTooltip("Input volume. Turn down when the meter hits CLIP");
         }
         ImGui.text("Microphone");
-        ImGui.setNextItemWidth(PANEL_WIDTH - 40.0f);
-        if (ImGui.button(deviceLabel(), PANEL_WIDTH - 40.0f, 0.0f)) {
-            deviceIndex = (deviceIndex + 1) % Math.max(1, devices.size());
-        }
-        if (ImGui.isItemHovered()) {
-            ImGui.setItemTooltip("Click to cycle through available microphones");
+        ImGui.setNextItemWidth(-1.0f);
+        if (ImGui.beginCombo("##ActorMicrophone", deviceLabel())) {
+            for (int i = 0; i < devices.size(); i++) {
+                MicDevices.Device device = devices.get(i);
+                if (ImGui.selectable(device.isDefault() ? "System default" : device.name(), deviceIndex == i)) {
+                    deviceIndex = i;
+                }
+            }
+            ImGui.endCombo();
         }
     }
 
     private static void renderFooter() {
-        if (ImGui.button("Confirm##ActorSetupConfirm", (PANEL_WIDTH - 50.0f) / 2.0f, 0.0f)) {
+        if (ImGui.button("Start recording##ActorSetupConfirm", (PANEL_WIDTH - 50.0f) / 2.0f, 0.0f)) {
             float gain = Math.max(10, Math.min(200, gainPercent[0])) / 100.0f;
             VoiceSettings.capture(wantVoice[0], voiceActivation[0], threshold[0], deviceName(),
                 gain);
@@ -168,10 +168,14 @@ public final class ActorSetupMenu {
         }
         ImGui.sameLine();
         if (ImGui.button("Cancel##ActorSetupCancel", (PANEL_WIDTH - 50.0f) / 2.0f, 0.0f)) {
-            MicCapture.stop();
-            close();
-            ActorMode.cancelSetup();
+            cancel();
         }
+    }
+
+    private static void cancel() {
+        MicCapture.stop();
+        close();
+        ActorMode.cancelSetup();
     }
 
 
@@ -189,7 +193,7 @@ public final class ActorSetupMenu {
 
     private static String deviceLabel() {
         String name = selectedDeviceOrNull();
-        return "Device: " + (name == null ? "Default" : name);
+        return name == null ? "System default" : name;
     }
 }
 

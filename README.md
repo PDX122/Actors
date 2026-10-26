@@ -95,8 +95,34 @@ re-records anything:
 - **Gear**: per-slot replacements with 18 loadout presets, first-class
   enchantments, and full-stack SNBT snapshots via `/actor gear copy`.
 - **Morphs**: 73 built-in bodies mapped onto vanilla poses, filtered to what the
-  renderer can actually show.
+  renderer can actually show. Click a mob in the picker to preview its animated 3D model and cycle available poses,
+  then Apply to change the actor. [Picker guide](docs/morph-picker.md).
 - **Skins**: any player, UUID, or PNG on disk, with a named library and aliases.
+
+## Movement cleanup
+
+Actor clones use Minecraft's server movement packet tracker every server tick.
+The server's position is authoritative; the native tracker owns relative moves,
+absolute corrections, teleports and head rotation. Recorded knockback velocity
+cues keep their existing delivery. Only actors use
+this cadence. Toggle **Settings > Recording > Send actor movement every tick**
+to compare with the normal cadence. Minecraft's packet precision and client
+interpolation still apply; this does not promise zero visual delay.
+
+Right-click an actor track and choose **Smooth movement**. Start with **Look
+only** for shaky head turns, **Horizontal path only** for positional jitter,
+or apply both. Menu presets use a two-tick radius and 50% strength.
+
+For custom settings, use `/actor smooth <look|path|all> <actor> <radius> <strength>`.
+For example, `/actor smooth look "Actor 1" 3 0.6` filters head turns using a
+three-tick radius at 60% strength. Omitting radius and strength uses the menu
+defaults. Radius accepts 1 to 10 ticks; strength accepts 0 to 1.
+
+Smoothing edits the saved recording and supports undo/redo. It preserves frame
+count, vertical movement, poses, flags, interaction frames and segment endpoints,
+and does not blend across teleports or pose changes. Horizontal path smoothing
+can round corners, so review close contact with walls after applying it. Finish
+actor mode and unlock the track before editing.
 
 ## Directing
 
@@ -107,6 +133,29 @@ re-records anything:
 - Timeline ops: razor, camera keyframe copy/paste, ripple-delete,
   multi-select, full undo/redo, snapping, and per-track lock.
 - A Station sidebar replacing the Visuals panel with Scene + Edit tabs.
+
+## Looks and filters
+
+Open **Actors Studio > Looks** inside a replay. Drag a look thumbnail onto an
+actor track to grade that actor's materials, or onto **Misc** to color the whole
+scene. Static previews of a real photo show all 44 original shaders in a searchable
+library, without recurring preview rendering. The collection includes comic ink,
+print screens, false color, handheld palettes, neon contours and cinematic grades.
+
+Actor drops span the take and create an indented Looks lane. Misc drops create
+scene clips at the drop position. Move and trim clips on the timeline, or double
+click to adjust stacks, intensity, grading and fades. Actor materials use private
+texture copies; source textures and the background stay unchanged. Misc mute and
+lock are independent of actor looks. Each target supports up to three filters
+per clip, saved per replay with undo. Older grades migrate into visible Misc
+clips. No hidden global grade or upscaling is used.
+
+Effects require OpenGL 3.3 or newer. Most actor effects grade material textures.
+Mosaic uses depth-masked screen-space blocks on the visible actor, without tile
+seams. Misc effects run over the whole scene. Held item atlases are unchanged. Named presets
+remain available in the clip inspector. The interface stays unfiltered.
+
+More detail: [Looks guide](docs/looks.md).
 
 ## Sharing takes
 

@@ -10,260 +10,200 @@ import pdx.dev.fbactors.actor.Actor;
 import pdx.dev.fbactors.morph.Morph;
 import pdx.dev.fbactors.morph.MorphCompatibility;
 import pdx.dev.fbactors.morph.MorphDefinition;
-import pdx.dev.fbactors.morph.MorphRegistry;
+import pdx.dev.fbactors.morph.MorphPreviews;
 import pdx.dev.fbactors.morph.MorphSearch;
 import pdx.dev.fbactors.morph.MorphSelection;
 import pdx.dev.fbactors.settings.FbSettings;
-
-import java.util.List;
 import java.util.UUID;
 
-
 public final class MorphPicker {
-
-
-    private static final String ID = "###ActorMorphPicker";
-
-
-    private static final ImBoolean OPEN = new ImBoolean(true);
-
-
-    @Nullable
+    private static final ImBoolean OPEN = new ImBoolean(false);
+    private static final int PAGE_SIZE = 12;
     private static Actor target;
-
-
-    @Nullable
     private static Actor pending;
-
     private static ImString search = ImGuiHelper.createResizableImString("");
     private static String category = "";
-    private static int page;
-
-    private static final float[] scaleBuffer = {1.0f};
-    private static final float[] alphaBuffer = {1.0f};
-    private static final boolean[] hideName = {false};
-
-
-    @Nullable
+    private static String preview;
     private static String status;
+    private static int page;
+    private static final float[] scaleBuffer = {1};
+    private static final float[] alphaBuffer = {1};
+    private static boolean hideName;
+    /** 3D mob preview is disabled until the flicker/unavailable issues are fixed. */
+    private static final boolean PREVIEW_DISABLED = true;
+    private MorphPicker() {}
 
-    private MorphPicker() {
-    }
-
-
-    public static void open(@Nullable Actor actor) {
-        if (actor != null) {
-            pending = actor;
-        }
-    }
-
-
-    public static void close() {
-        pending = null;
-        target = null;
-        OPEN.set(false);
-    }
-
-
-    public static boolean isOpen(@Nullable Actor actor) {
-        return target != null && target == actor;
-    }
-
+    public static void open(@Nullable Actor actor) { if (actor != null) pending = actor; }
+    public static void close() { pending = null; target = null; OPEN.set(false); MorphPreviews.close(); }
+    public static boolean isOpen(@Nullable Actor actor) { return target != null && target == actor; }
 
     private static void begin(Actor actor) {
         target = actor;
         OPEN.set(true);
         search = ImGuiHelper.createResizableImString("");
         category = "";
+        preview = null;
         page = 0;
         status = null;
         syncTuning(actor);
     }
 
-
     public static void render() {
-        Actor requested = pending;
-        if (requested != null) {
-            pending = null;
-            begin(requested);
+        try {
+            renderInner();
+        } catch (Exception | LinkageError e) {
+            pdx.dev.fbactors.FlashbackActors.LOGGER.warn("Morph picker overlay failed; closing it", e);
+            close();
         }
+    }
 
+    private static void renderInner() {
+        if (pending != null) { Actor next = pending; pending = null; begin(next); }
         Actor actor = target;
-        if (actor == null) {
-            return;
-        }
-
-        ImGui.setNextWindowSize(340.0f, 420.0f, ImGuiCond.FirstUseEver);
-        ImGui.setNextWindowPos(150.0f, 150.0f, ImGuiCond.FirstUseEver);
-
-        if (ImGui.begin("Change morph - " + actor.displayName() + ID, OPEN)) {
+        // Preview disabled: release any cached preview GL resources and never
+        // open new ones (see preview()). Re-enable by passing through OPEN.
+        MorphPreviews.beginFrame(false);
+        if (actor == null) return;
+        ImGui.setNextWindowSize(560, 440, ImGuiCond.FirstUseEver);
+        ImGui.setNextWindowPos(150, 150, ImGuiCond.FirstUseEver);
+        if (ImGui.begin("Morphs - " + actor.displayName() + "###ActorMorphPicker", OPEN)) {
             if (!FbSettings.morphEnabled()) {
-                ImGui.textDisabled("Morphs are disabled. Turn them back on in FBA Settings.");
-                ImGui.separator();
-                if (ImGui.button("Close##ActorMorphClose")) {
-                    close();
-                }
+                ImGui.textWrapped("Morphs are disabled. Enable them in FBA Settings.");
             } else {
-                currentMorph(actor);
-                ImGui.separator();
-                tuning(actor);
-                ImGui.separator();
-                filterRow();
-                ImGui.separator();
-                list(actor);
-                ImGui.separator();
-                if (status != null) {
-                    ImGui.textDisabled(status);
+                var current = Morph.selectionFor(actor.take.id);
+                var definition = current == null ? null : Morph.registry().byId(current.morphId());
+                ImGui.textDisabled("Current: " + (definition == null ? "Player" : definition.displayName()));
+                if (ImGui.beginTabBar("##MorphTabs")) {
+                    if (ImGui.beginTabItem("Browse")) {
+                        filterRow();
+                        list(actor);
+                        ImGui.endTabItem();
+                    }
+                    if (ImGui.beginTabItem("Tuning")) {
+                        ImGui.beginDisabled(actor.take.locked);
+                        tuning(actor);
+                        ImGui.endDisabled();
+                        ImGui.endTabItem();
+                    }
+                    ImGui.endTabBar();
                 }
-                if (ImGui.button("None##ActorMorphNone")) {
+                if (status != null) ImGui.textWrapped(status);
+                ImGui.separator();
+                ImGui.beginDisabled(actor.take.locked || current == null || !current.isMorphed());
+                if (ImGui.button("Restore player")) {
                     Morph.store().clear(actor.take.id);
                     Morph.save();
+                    syncTuning(actor);
                     status = actor.displayName() + " is a player again.";
                 }
+                ImGui.endDisabled();
                 ImGui.sameLine();
-                if (ImGui.button("Close##ActorMorphClose")) {
-                    close();
-                }
+                if (ImGui.button("Close")) close();
             }
         }
         ImGui.end();
-
-        if (!OPEN.get()) {
-            pending = null;
-            target = null;
-        }
+        if (!OPEN.get()) { pending = null; target = null; }
     }
-
-
-    private static void currentMorph(Actor actor) {
-        MorphSelection selection = Morph.selectionFor(actor.take.id);
-        if (selection == null || !selection.isMorphed()) {
-            ImGui.textUnformatted("Currently: player (no morph)");
-            return;
-        }
-        MorphDefinition def = Morph.registry().byId(selection.morphId());
-        String name = def == null ? selection.morphId() : def.displayName();
-        ImGui.textUnformatted("Currently: " + name + "  x" + selection.scale());
-        if (def == null) {
-            ImGui.textDisabled("That morph is no longer in the catalogue; picking anything replaces it.");
-        }
-    }
-
 
     private static void syncTuning(Actor actor) {
-        MorphSelection selection = Morph.selectionFor(actor.take.id);
+        var selection = Morph.selectionFor(actor.take.id);
         scaleBuffer[0] = selection == null ? MorphSelection.DEFAULT_SCALE : selection.scale();
         alphaBuffer[0] = selection == null ? MorphSelection.DEFAULT_ALPHA : selection.alpha();
-        hideName[0] = selection != null && selection.hideName();
+        hideName = selection != null && selection.hideName();
     }
 
-
     private static void tuning(Actor actor) {
-        MorphSelection current = Morph.selectionFor(actor.take.id);
+        var current = Morph.selectionFor(actor.take.id);
         if (current == null || !current.isMorphed()) {
-            ImGui.textDisabled("Pick a morph below, then tune it here.");
+            ImGui.textWrapped("Apply a morph from Browse to adjust its size and opacity.");
             return;
         }
-        ImGui.setNextItemWidth(ImGui.getWindowWidth() - 16.0f);
-        if (ImGui.sliderFloat("Size##ActorMorphScale", scaleBuffer,
-                MorphSelection.MIN_SCALE, MorphSelection.MAX_SCALE, "x%.2f")) {
+        ImGui.setNextItemWidth(-90);
+        if (ImGui.sliderFloat("Size", scaleBuffer, MorphSelection.MIN_SCALE, MorphSelection.MAX_SCALE, "x%.2f")) {
             Morph.store().set(actor.take.id, current.withScale(scaleBuffer[0]));
             Morph.save();
         }
-        ImGui.setNextItemWidth(ImGui.getWindowWidth() - 16.0f);
-        if (ImGui.sliderFloat("Opacity##ActorMorphAlpha", alphaBuffer, 0.0f, 1.0f, "%.2f")) {
+        ImGui.setNextItemWidth(-90);
+        if (ImGui.sliderFloat("Opacity", alphaBuffer, 0, 1, "%.2f")) {
             Morph.store().set(actor.take.id, Morph.selectionFor(actor.take.id).withAlpha(alphaBuffer[0]));
             Morph.save();
         }
-        if (ImGui.checkbox("Hide name##ActorMorphHideName", hideName[0])) {
-            hideName[0] = !hideName[0];
-            Morph.store().set(actor.take.id,
-                Morph.selectionFor(actor.take.id).withNameHidden(hideName[0]));
+        if (ImGui.checkbox("Hide name", hideName)) {
+            hideName = !hideName;
+            Morph.store().set(actor.take.id, Morph.selectionFor(actor.take.id).withNameHidden(hideName));
             Morph.save();
         }
     }
 
-
     private static void filterRow() {
-        ImGui.setNextItemWidth(ImGui.getWindowWidth() - 16.0f);
-        if (ImGui.inputTextWithHint("##ActorMorphSearch", "Filter by name", search, 64)) {
-            page = 0;
-        }
-        for (String known : MorphSearch.knownCategories()) {
-            if (ImGui.button(labelFor(known) + "##ActorMorphCat" + known)) {
-                category = known.equals(category) ? "" : known;
-                page = 0;
+        float width = ImGui.getContentRegionAvailX();
+        boolean inline = width >= 300;
+        ImGui.setNextItemWidth(inline ? Math.max(1, width - 136) : -1);
+        if (ImGui.inputTextWithHint("##MorphSearch", "Search mobs...", search)) page = 0;
+        if (inline) ImGui.sameLine();
+        ImGui.setNextItemWidth(inline ? 128 : -1);
+        if (ImGui.beginCombo("##MorphCategory", labelFor(category))) {
+            if (ImGui.selectable("All", category.isEmpty())) { category = ""; page = 0; }
+            for (String known : MorphSearch.knownCategories()) {
+                if (ImGui.selectable(labelFor(known), category.equals(known))) { category = known; page = 0; }
             }
-            ImGui.sameLine();
+            ImGui.endCombo();
         }
-        ImGui.textDisabled(category.isEmpty() ? "All categories" : labelFor(category));
     }
 
-    private static String labelFor(String categoryId) {
-        if (categoryId.isEmpty()) {
-            return "All";
-        }
-        return categoryId.substring(0, 1).toUpperCase(java.util.Locale.ROOT)
-            + categoryId.substring(1);
+    private static String labelFor(String id) {
+        return id.isEmpty() ? "All" : id.substring(0, 1).toUpperCase(java.util.Locale.ROOT) + id.substring(1);
     }
-
 
     private static void list(Actor actor) {
-        MorphRegistry registry = Morph.registry();
+        var registry = Morph.registry();
         String query = ImGuiHelper.getString(search);
-        int pages = MorphSearch.pageCount(registry, query, category, MorphSearch.PAGE_SIZE);
-        if (page >= pages) {
-            page = Math.max(0, pages - 1);
+        int pages = MorphSearch.pageCount(registry, query, category, PAGE_SIZE);
+        page = Math.max(0, Math.min(page, pages - 1));
+        var rows = MorphSearch.search(registry, query, category, page, PAGE_SIZE);
+        float width = ImGui.getContentRegionAvailX();
+        boolean beside = width >= 420;
+        // Clamp: ImGui draw commands with a zero/negative extent produce a
+        // zero-area clip rect, and Flashback's overlay renderer throws
+        // (IllegalArgumentException: Scissor size must be >0) on those.
+        float listW = beside ? Math.max(1, width - 188) : 0;
+        if (ImGui.beginChild("##MorphList", listW, 240, true)) {
+            if (rows.isEmpty()) ImGui.textDisabled("No matching mobs.");
+            for (var morph : rows) {
+                if (ImGui.selectable(morph.displayName() + "##" + morph.id(), morph.id().equals(preview))) preview = morph.id();
+                ImGui.setItemTooltip(morph.id() + " / " + labelFor(morph.kind()) + "\nClick to preview. Apply changes the actor.");
+            }
         }
-        List<MorphDefinition> rows =
-            MorphSearch.search(registry, query, category, page, MorphSearch.PAGE_SIZE);
-        if (rows.isEmpty()) {
-            ImGui.textDisabled("Nothing matches that filter.");
+        ImGui.endChild();
+        if (beside) ImGui.sameLine();
+        ImGui.beginGroup();
+        preview(actor, beside ? 180 : Math.max(1, Math.min(180, width)));
+        ImGui.endGroup();
+        ImGui.beginDisabled(page == 0);
+        if (ImGui.button("<##MorphPrev")) page--;
+        ImGui.endDisabled();
+        ImGui.sameLine();
+        ImGui.textDisabled("Page " + (page + 1) + " of " + Math.max(1, pages));
+        ImGui.sameLine();
+        ImGui.beginDisabled(page + 1 >= pages);
+        if (ImGui.button(">##MorphNext")) page++;
+        ImGui.endDisabled();
+    }
+
+    private static void preview(Actor actor, float width) {
+        var definition = Morph.registry().byId(preview);
+        if (definition == null) {
+            ImGui.textWrapped("Click a mob to see its 3D model here.");
             return;
         }
+        ImGui.textUnformatted(definition.displayName());
+        ImGui.textDisabled("3D preview disabled for now - coming back in a later update.");
+        ImGui.textWrapped("Select a mob below and Apply morph to use it.");
 
-        MorphSelection current = Morph.selectionFor(actor.take.id);
-        String currentId = current == null ? null : current.morphId();
-        for (int i = 0; i < rows.size(); i++) {
-            MorphDefinition morph = rows.get(i);
-            ImGui.pushID(0x1F0BAC70 + i);
-            boolean selected = morph.id().equals(currentId);
-            if (ImGui.selectable(rowLabel(morph), selected)) {
-                applyMorph(actor, morph);
-                syncTuning(actor);
-            }
-            if (!MorphCompatibility.canApply(morph, true)) {
-                ImGui.sameLine();
-                ImGui.textDisabled("(needs renderer support)");
-            }
-            ImGui.popID();
-        }
-
-        ImGui.separator();
-        if (ImGui.button("<##ActorMorphPrev") && page > 0) {
-            page--;
-        }
-        ImGui.sameLine();
-        ImGui.textDisabled("Page " + (page + 1) + " of " + pages);
-        ImGui.sameLine();
-        if (ImGui.button(">##ActorMorphNext") && page < pages - 1) {
-            page++;
-        }
+        ImGui.beginDisabled(actor.take.locked);
+        if (ImGui.button("Apply morph", Math.max(1, width), 0)) { applyMorph(actor, definition); syncTuning(actor); }
+        ImGui.endDisabled();
     }
-
-
-    private static String rowLabel(MorphDefinition morph) {
-        StringBuilder row = new StringBuilder(morph.displayName())
-            .append("  (").append(morph.id()).append(")  x").append(morph.scale());
-        if (morph.quadruped()) {
-            row.append(", quadruped");
-        }
-        if (morph.elytraCapable()) {
-            row.append(", flies");
-        }
-        return row.toString();
-    }
-
 
     private static void applyMorph(Actor actor, MorphDefinition morph) {
         UUID takeId = actor.take.id;

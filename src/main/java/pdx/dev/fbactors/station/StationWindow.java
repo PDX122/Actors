@@ -61,13 +61,14 @@ public final class StationWindow {
 
 
         ImGuiViewport viewport = ImGui.getMainViewport();
-        float panelWidth = 258.0f;
+        float panelWidth = 300.0f;
         ImGui.setNextWindowPos(
             viewport.getWorkPosX() + viewport.getWorkSizeX() - panelWidth,
             viewport.getWorkPosY(), ImGuiCond.FirstUseEver);
         ImGui.setNextWindowSize(panelWidth, viewport.getWorkSizeY() * 0.78f,
             ImGuiCond.FirstUseEver);
-        if (ImGui.begin("Station###Visuals")) {
+        if (ImGui.begin("Actors Studio###Visuals")) {
+            ImGui.pushTextWrapPos(0.0f);
             if (ImGui.beginTabBar("##StationTabs")) {
                 if (ImGui.beginTabItem("Scene")) {
                     renderScene(editorState, visuals, replayServer);
@@ -77,8 +78,13 @@ public final class StationWindow {
                     renderEdit(replayServer);
                     ImGui.endTabItem();
                 }
+                if (ImGui.beginTabItem("Looks")) {
+                    pdx.dev.fbactors.filters.LooksMenu.renderPicker();
+                    ImGui.endTabItem();
+                }
                 ImGui.endTabBar();
             }
+            ImGui.popTextWrapPos();
         }
         ImGui.end();
     }
@@ -87,12 +93,17 @@ public final class StationWindow {
     @SuppressWarnings("deprecation")
     private static void renderScene(EditorState editorState, ReplayVisuals visuals,
                                     ReplayServer replayServer) {
-        renderFrameSection(editorState, visuals);
-        renderLensSection(editorState, visuals, replayServer);
-        renderLightSection(editorState, visuals, replayServer);
-        renderCaptureSection(editorState, visuals);
-
-        if (ImGui.collapsingHeader("All scene controls")) {
+        if (ImGui.collapsingHeader("Framing", imgui.moulberry90.flag.ImGuiTreeNodeFlags.DefaultOpen)) {
+            renderFrameSection(editorState, visuals);
+            renderLensSection(editorState, visuals, replayServer);
+        }
+        if (ImGui.collapsingHeader("Lighting")) {
+            renderLightSection(editorState, visuals, replayServer);
+        }
+        if (ImGui.collapsingHeader("Capture", imgui.moulberry90.flag.ImGuiTreeNodeFlags.DefaultOpen)) {
+            renderCaptureSection(editorState, visuals);
+        }
+        if (ImGui.collapsingHeader("Advanced scene controls")) {
             renderInterfaceSection(editorState, visuals);
             renderWorldSection(editorState, visuals);
             renderAtmosphereSection(editorState, visuals);
@@ -458,92 +469,66 @@ public final class StationWindow {
     private static void renderEdit(ReplayServer replayServer) {
         List<Actor> actors = FlashbackActors.ACTORS.actors();
         List<pdx.dev.fbactors.take.ActorTake> takes = new ArrayList<>(actors.size());
+        boolean editableSelection = false;
         for (Actor actor : actors) {
             takes.add(actor.take);
+            if (!actor.take.locked && (ActorTrack.selectedIds().contains(actor.take.id)
+                || ActorTrack.selected() == actor)) editableSelection = true;
         }
         ImGui.textDisabled(StationSummary.statusLine(takes, ActorTrack.selectedIds()));
-        ImGui.separator();
+        ImGui.spacing();
+        if (wideButton("New actor take")) ActorTrack.newActor();
+        ImGui.setItemTooltip("Record another performance (Ctrl+N)");
+        ImGui.spacing();
 
         ImGuiHelper.separatorWithText("Timeline");
-        int tick = replayServer.getReplayTick();
-        boolean hasSelection = ActorTrack.selected() != null || !ActorTrack.selectedIds().isEmpty();
-        if (ImGui.button("Razor at playhead")) {
-            ActorTrack.razorSelectedAt(tick);
-        }
-        ImGui.setItemTooltip("Split every selected take at tick " + tick + " (Ctrl+B)");
-        if (ImGui.button("Ripple-delete selection")) {
-            ActorTrack.rippleDeleteSelected();
-        }
-        ImGui.setItemTooltip("Delete the selection and close the gap (Shift+Delete)");
-        if (!UndoStack.canUndoEdit() && !UndoStack.canUndo()) {
-            ImGui.beginDisabled();
-        }
-        if (ImGui.button("Undo")) {
-            undoThroughStack();
-        }
-        if (!UndoStack.canUndoEdit() && !UndoStack.canUndo()) {
-            ImGui.endDisabled();
-        }
+        boolean undo = UndoStack.canUndoEdit() || UndoStack.canUndo();
+        boolean redo = UndoStack.canRedoEdit() || UndoStack.canRedo();
+        float half = Math.max(1.0f, (ImGui.getContentRegionAvailX() - ImGui.getStyle().getItemSpacingX()) / 2.0f);
+        ImGui.beginDisabled(!undo);
+        if (ImGui.button("Undo", half, 0)) undoThroughStack();
+        ImGui.endDisabled();
         ImGui.sameLine();
-        if (!UndoStack.canRedoEdit() && !UndoStack.canRedo()) {
-            ImGui.beginDisabled();
-        }
-        if (ImGui.button("Redo")) {
-            redoThroughStack();
-        }
-        if (!UndoStack.canRedoEdit() && !UndoStack.canRedo()) {
-            ImGui.endDisabled();
-        }
-        if (!hasSelection) {
-            ImGui.textDisabled("Select a take on the timeline first.");
-        }
-        ImGui.separator();
-
-        ImGuiHelper.separatorWithText("Actors");
-        if (ImGui.button("New actor take")) {
-            ActorTrack.newActor();
-        }
-        ImGui.setItemTooltip("Start recording a take (Ctrl+N)");
-        ImGui.textDisabled("Ctrl+click toggles multi-select, Ctrl+A selects all.");
-        ImGui.separator();
+        ImGui.beginDisabled(!redo);
+        if (ImGui.button("Redo", half, 0)) redoThroughStack();
+        ImGui.endDisabled();
+        ImGui.beginDisabled(!editableSelection);
+        if (wideButton("Split at playhead")) ActorTrack.razorSelectedAt(replayServer.getReplayTick());
+        ImGui.setItemTooltip("Split selected takes (Ctrl+B)");
+        if (wideButton("Ripple delete")) ActorTrack.rippleDeleteSelected();
+        ImGui.setItemTooltip("Delete selected takes and close the gap (Shift+Delete)");
+        ImGui.endDisabled();
+        if (!editableSelection) ImGui.textDisabled("Select an unlocked take to edit it.");
+        ImGui.spacing();
 
         ImGuiHelper.separatorWithText("Camera");
-        if (ImGui.button("Director")) {
-            DirectorMenu.open();
-        }
-        ImGui.setItemTooltip("Auto-generate a cinematic camera from the recorded actors");
-        ImGui.sameLine();
-        if (ImGui.button("Shots")) {
-            DirectorShotsWindow.open();
-        }
-        ImGui.setItemTooltip("Direct the shot list: who, how, framed how, from when");
-        ImGui.separator();
+        if (wideButton("Open Director")) DirectorMenu.open();
+        if (wideButton("Shot list")) DirectorShotsWindow.open();
+        ImGui.spacing();
 
-        ImGuiHelper.separatorWithText("Titles & Audio");
-        if (FbSettings.subtitlesEnabled()) {
-            if (ImGui.button("Subtitles")) {
-                pdx.dev.fbactors.subtitle.SubtitleMenu.open();
+        if (ImGui.collapsingHeader("Captions")) {
+            if (FbSettings.subtitlesEnabled()) {
+                if (wideButton("Edit subtitles")) pdx.dev.fbactors.subtitle.SubtitleMenu.open();
+            } else {
+                ImGui.textDisabled("Enable captions in Settings > Audio.");
+                if (wideButton("Open settings")) FbSettingsMenu.open();
             }
-            ImGui.setItemTooltip("Captions on voice lines and hand-authored subtitle lines");
-        } else {
-            ImGui.textDisabled("Subtitles are off (FBA Settings).");
         }
-        ImGui.separator();
+        if (ImGui.collapsingHeader("Workspace")) {
+            if (wideButton("Settings")) FbSettingsMenu.open();
+            if (wideButton("Scene theme")) ThemeMenu.open();
+            boolean station = FbSettings.settings().stationSidebar;
+            if (ImGui.checkbox("Use studio sidebar", station)) {
+                FbSettings.settings().stationSidebar = !station;
+                FbSettings.settings().save();
+            }
+            ImGui.setItemTooltip("Turn off to restore Flashback's Visuals panel");
+            ImGui.textDisabled("Ctrl+click selects multiple takes. Ctrl+A selects all.");
+        }
+    }
 
-        ImGuiHelper.separatorWithText("Sidebar");
-        boolean station = FbSettings.settings().stationSidebar;
-        if (ImGui.checkbox("Station sidebar", station)) {
-            FbSettings.settings().stationSidebar = !station;
-            FbSettings.settings().save();
-        }
-        ImGui.setItemTooltip("Off brings back Flashback's own Visuals panel");
-        if (ImGui.button("FBA Settings")) {
-            FbSettingsMenu.open();
-        }
-        ImGui.sameLine();
-        if (ImGui.button("Theme")) {
-            ThemeMenu.open();
-        }
+    private static boolean wideButton(String label) {
+        return ImGui.button(label, Math.max(1, ImGui.getContentRegionAvailX()), 0);
     }
 
 

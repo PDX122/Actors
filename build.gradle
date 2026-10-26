@@ -48,6 +48,7 @@ configure(targets) {
         // `implementation` satisfies both and is not bundled: nothing is included unless
         // it is explicitly `include`d.
         implementation "net.fabricmc:sponge-mixin:${rootProject.mixin_version}"
+        compileOnly 'io.github.llamalad7:mixinextras-fabric:0.5.4'
         testImplementation platform('org.junit:junit-bom:5.10.3')
         testImplementation 'org.junit.jupiter:junit-jupiter'
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -94,6 +95,25 @@ configure(targets) {
         it.testLogging {
             events 'failed'
             exceptionFormat 'short'
+        }
+    }
+
+    if (project.mc_version == '1.21.11') {
+        sourceSets {
+            gpuTest {
+                java.srcDirs = ["${rootDir}/src/gpuTest/java"]
+                compileClasspath += sourceSets.test.compileClasspath
+                runtimeClasspath += sourceSets.test.runtimeClasspath
+            }
+        }
+        tasks.register('gpuTest', Test) {
+            group = 'verification'
+            testClassesDirs = sourceSets.gpuTest.output.classesDirs
+            classpath = sourceSets.gpuTest.runtimeClasspath
+            environment 'FBACTORS_GL_TESTS', '1'
+            javaLauncher = javaToolchains.launcherFor {
+                languageVersion = JavaLanguageVersion.of(21)
+            }
         }
     }
 

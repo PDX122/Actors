@@ -26,6 +26,9 @@ jobs:
       - name: Mixin signatures (tables, no Flashback jars)
         run: python3 tools/verify_mixins.py --no-live --no-flashback
 
+      - name: Actor packet hook tests
+        run: python3 -m unittest discover -s tools -p test_actor_packets.py
+
       - name: JSON validity
         run: |
           python3 - <<'EOF'
