@@ -69,3 +69,8 @@ before copying them. It adds or updates that mod version while retaining older
 catalog entries. The docs check validates every packaged JAR and ZIP checksum.
 Keep the candidate status until the release is actually published. The packager
 does not publish a GitHub Release or deploy the site.
+
+Each release has a site revision such as `0.11.1.1`. Packaging increments it when
+the JAR checksums change and retains it when the same JARs are packaged again.
+The revision appears on the downloads page and in cache keys. Filenames and
+`fabric.mod.json` keep the original mod version.

@@ -55,6 +55,14 @@ def package(source,output):
             'archive':{'filename':bundle_name,'bytes':archive.stat().st_size,'sha256':digest(archive)},'checksums':'SHA256SUMS.txt'}
     catalog_path=output/'catalog.json'
     catalog=json.loads(catalog_path.read_text()) if catalog_path.exists() else {'releases':[]}
+    previous=next((r for r in catalog['releases'] if r['version']==version),None)
+    revision=max(1,int(previous.get('revision',1))) if previous else 1
+    if previous:
+        old={b['filename']:b['sha256'] for b in previous['builds']}
+        current={b['filename']:b['sha256'] for b in builds}
+        if old!=current:revision+=1
+    record['revision']=revision
+    record['display_version']=f'{version}.{revision}'
     catalog['releases']=[record]+[r for r in catalog['releases'] if r['version']!=version]
     catalog_path.write_text(json.dumps(catalog,indent=2)+'\n',encoding='utf-8')
     print(f'Packaged {version}: {len(builds)} verified JARs, all-version ZIP and checksums in {output}')

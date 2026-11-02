@@ -85,15 +85,16 @@ def download_sections(prefix):
     bundles=''
     for release in catalog['releases']:
         version=release['version'];base=prefix+'assets/downloads/'+version+'/'
-        rows+=f'<section class="download-release"><div class="release-heading"><strong>Actors {escape(version)}</strong><span>{escape(release["label"])}</span></div>'
+        display_version=escape(release.get('display_version',version));query='?build='+display_version
+        rows+=f'<section class="download-release"><div class="release-heading"><strong>Actors {escape(version)}</strong><span>Build {display_version} · {escape(release["label"])}</span></div>'
         for build in release['builds']:
             versions_label=', '.join(build['minecraft'])
             supported=escape(json.dumps(build['minecraft']),quote=True)
             filename=escape(build['filename']);sha=build['sha256']
-            rows+=f'<article class="download-build" data-minecraft="{supported}"><div class="build-top"><div><h3>Minecraft {escape(versions_label)}</h3><p>Java {build["java"]} · {size_label(build["bytes"])}</p></div><a class="download-button" href="{base+filename}" download="{filename}" aria-label="Download Actors {version} for Minecraft {escape(versions_label)}">Download JAR {icon("download",prefix)}</a></div><details class="download-details"><summary>Checksum and filename</summary><code class="download-filename">{filename}</code><div class="download-hash"><code>{sha}</code><button type="button" data-copy-sha="{sha}">Copy SHA-256</button></div></details></article>'
+            rows+=f'<article class="download-build" data-minecraft="{supported}"><div class="build-top"><div><h3>Minecraft {escape(versions_label)}</h3><p>Build {display_version} · Java {build["java"]} · {size_label(build["bytes"])}</p></div><a class="download-button" href="{base+filename+query}" download="{filename}" aria-label="Download Actors {display_version} for Minecraft {escape(versions_label)}">Download JAR {icon("download",prefix)}</a></div><details class="download-details"><summary>Checksum and filename</summary><code class="download-filename">{filename}</code><div class="download-hash"><code>{sha}</code><button type="button" data-copy-sha="{sha}">Copy SHA-256</button></div></details></article>'
         rows+='</section>'
         archive=release['archive'];name=escape(archive['filename']);sha=archive['sha256']
-        bundles+=f'<section class="download-bundle"><div class="build-top"><div><h3>Actors {escape(version)}: all versions</h3><p>{len(release["builds"])} JARs · {size_label(archive["bytes"])} · {escape(release["label"])}</p></div><a class="download-button" href="{base+name}" download="{name}">Download ZIP {icon("download",prefix)}</a></div><p><a href="{base+release["checksums"]}" download>Download checksums</a></p><details class="download-details"><summary>ZIP checksum</summary><div class="download-hash"><code>{sha}</code><button type="button" data-copy-sha="{sha}">Copy SHA-256</button></div></details></section>'
+        bundles+=f'<section class="download-bundle"><div class="build-top"><div><h3>Actors {escape(version)}: all versions</h3><p>{len(release["builds"])} JARs · {size_label(archive["bytes"])} · {escape(release["label"])}</p></div><a class="download-button" href="{base+name+query}" download="{name}">Download ZIP {icon("download",prefix)}</a></div><p><a href="{base+release["checksums"]+query}" download>Download checksums</a></p><details class="download-details"><summary>ZIP checksum</summary><div class="download-hash"><code>{sha}</code><button type="button" data-copy-sha="{sha}">Copy SHA-256</button></div></details></section>'
     rows+='<p id="download-empty" hidden>No packaged build matches this Minecraft version.</p><p id="checksum-status" role="status" aria-live="polite"></p>'
     return rows,bundles
 

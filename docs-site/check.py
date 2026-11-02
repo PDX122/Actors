@@ -48,6 +48,8 @@ def static_check():
             with path.open('rb') as stream:
                 assert hashlib.file_digest(stream,'sha256').hexdigest()==item['sha256'],path
             assert path.stat().st_size==item['bytes'],path
+        assert release['display_version']==f"{release['version']}.{release['revision']}"
+        assert release['display_version'] in (OUTPUT/'downloads/index.html').read_text()
         builds+=len(release['builds'])
     return {'pages':len(pages),'search_records':len(index),'broken_links':len(errors),'verified_downloads':builds}
 

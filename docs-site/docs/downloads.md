@@ -6,6 +6,8 @@ Choose the Actors build for your Minecraft version. Install it alongside matchin
 
 The current **0.11.1** builds are a **release candidate**. These are the packaged JARs from the validated release folder, not a newly published stable release. Use Java 21 for 1.21.x or Java 25 for 26.x.
 
+The site shows a build revision, such as **0.11.1.1**, so you can identify the newest update. Downloaded filenames and the installed mod version stay **0.11.1**.
+
 {{download_catalog}}
 
 ## All versions
