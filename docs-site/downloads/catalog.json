@@ -1,0 +1,113 @@
+{
+  "releases": [
+    {
+      "version": "0.11.1",
+      "status": "candidate",
+      "label": "Release candidate",
+      "builds": [
+        {
+          "family": "1.21.1",
+          "minecraft": [
+            "1.21",
+            "1.21.1"
+          ],
+          "java": 21,
+          "filename": "flashback-actors-1.21.1-0.11.1.jar",
+          "sha256": "e52251c580ff2734887bbbd5dc47e0057e77a3a767606f10a502f03b4e95e362",
+          "bytes": 5077815
+        },
+        {
+          "family": "1.21.4",
+          "minecraft": [
+            "1.21.4"
+          ],
+          "java": 21,
+          "filename": "flashback-actors-1.21.4-0.11.1.jar",
+          "sha256": "5c779a72ac9f5ae31b2be84f98a50028cb065b05d7f468a24ec9e148aa42401a",
+          "bytes": 5079595
+        },
+        {
+          "family": "1.21.5",
+          "minecraft": [
+            "1.21.5"
+          ],
+          "java": 21,
+          "filename": "flashback-actors-1.21.5-0.11.1.jar",
+          "sha256": "fd4e8cf386e346b02c4aacb862ab12e565da4216a18706decc4aa58c505b1711",
+          "bytes": 5081286
+        },
+        {
+          "family": "1.21.8",
+          "minecraft": [
+            "1.21.6",
+            "1.21.7",
+            "1.21.8"
+          ],
+          "java": 21,
+          "filename": "flashback-actors-1.21.8-0.11.1.jar",
+          "sha256": "d699f21f865e857e0c1605fbfb6cbfd7b9720bb95ee9b100704ac8ffeb3bcd3c",
+          "bytes": 5083283
+        },
+        {
+          "family": "1.21.10",
+          "minecraft": [
+            "1.21.9",
+            "1.21.10"
+          ],
+          "java": 21,
+          "filename": "flashback-actors-1.21.10-0.11.1.jar",
+          "sha256": "23fc504222f608326b289a72ca9e7bfb0e3bd9416b3ca05f7568889a0cf24bac",
+          "bytes": 5085564
+        },
+        {
+          "family": "1.21.11",
+          "minecraft": [
+            "1.21.11"
+          ],
+          "java": 21,
+          "filename": "flashback-actors-1.21.11-0.11.1.jar",
+          "sha256": "1f55c12900d788537504f7fb7c1dc16b20da39bf4b7b840996f119b75041052d",
+          "bytes": 5086314
+        },
+        {
+          "family": "26.1.2",
+          "minecraft": [
+            "26.1",
+            "26.1.1",
+            "26.1.2"
+          ],
+          "java": 25,
+          "filename": "flashback-actors-26.1.2-0.11.1.jar",
+          "sha256": "94eb1ce39b7f40bd82417446ac47be817a2b8a48eb326ed91b1d613c24591414",
+          "bytes": 5090401
+        },
+        {
+          "family": "26.2",
+          "minecraft": [
+            "26.2"
+          ],
+          "java": 25,
+          "filename": "flashback-actors-26.2-0.11.1.jar",
+          "sha256": "cd0f3c7144e8c7e6558707d58e734a84e00bcbc6dfe0b76cec00e505a269b393",
+          "bytes": 5092469
+        },
+        {
+          "family": "26.3",
+          "minecraft": [
+            "26.3"
+          ],
+          "java": 25,
+          "filename": "flashback-actors-26.3-0.11.1.jar",
+          "sha256": "499a3bd34e6ad55020263d30175c4d8503c50e0d5d19e82eece8855fc111a9b0",
+          "bytes": 5139274
+        }
+      ],
+      "archive": {
+        "filename": "flashback-actors-0.11.1-all-versions.zip",
+        "bytes": 45096795,
+        "sha256": "20c5a2d8a30e5065fda6249a5d9a39635d04d0805c851712a5ef2a7a839bd825"
+      },
+      "checksums": "SHA256SUMS.txt"
+    }
+  ]
+}

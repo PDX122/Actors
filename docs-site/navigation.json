@@ -1,0 +1,106 @@
+[
+  {
+    "label": "Get started",
+    "pages": [
+      [
+        "index",
+        "Overview"
+      ],
+      [
+        "downloads",
+        "Downloads"
+      ],
+      [
+        "install",
+        "Installation"
+      ],
+      [
+        "takes",
+        "Record a take"
+      ]
+    ]
+  },
+  {
+    "label": "Direct",
+    "pages": [
+      [
+        "timeline",
+        "Timeline editing"
+      ],
+      [
+        "camera-modes",
+        "Camera modes"
+      ],
+      [
+        "studio",
+        "Actors Studio"
+      ],
+      [
+        "export",
+        "Export video"
+      ]
+    ]
+  },
+  {
+    "label": "Appearance",
+    "pages": [
+      [
+        "morphs",
+        "Morphs and poses"
+      ],
+      [
+        "skins",
+        "Skins"
+      ],
+      [
+        "gear-emotes",
+        "Gear and emotes"
+      ],
+      [
+        "custom-mobs",
+        "Custom models"
+      ],
+      [
+        "looks",
+        "Looks and effects"
+      ],
+      [
+        "custom-shaders",
+        "Custom shaders"
+      ]
+    ]
+  },
+  {
+    "label": "Project",
+    "pages": [
+      [
+        "voice",
+        "Voice recording"
+      ],
+      [
+        "captions",
+        "Captions"
+      ],
+      [
+        "sharing",
+        "Sharing and storage"
+      ],
+      [
+        "settings",
+        "Settings and themes"
+      ],
+      [
+        "troubleshooting",
+        "Troubleshooting"
+      ],
+      [
+        "changelog",
+        "Changelog"
+      ],
+      [
+        "test-log",
+        "Test log"
+      ]
+    ]
+  }
+]

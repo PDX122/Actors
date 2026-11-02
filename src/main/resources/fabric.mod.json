@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "fbactors",
+  "version": "${version}",
+  "name": "Flashback Actors",
+  "description": "Record virtual actors inside a Flashback replay and play them back on the timeline.",
+  "authors": [
+    "PDX"
+  ],
+  "license": "MIT",
+  "icon": "assets/fbactors/logo.png",
+  "contact": {
+    "homepage": "https://github.com/PDX122/Actors",
+    "sources": "https://github.com/PDX122/Actors",
+    "issues": "https://github.com/PDX122/Actors/issues"
+  },
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "pdx.dev.fbactors.FlashbackActors"
+    ]
+  },
+  "mixins": [
+    "fbactors.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "${mc_range}",
+    "java": ">=${java_version}",
+    "fabric-api": "*",
+    "flashback": ">=0.39.0"
+  }
+}

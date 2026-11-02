@@ -1,0 +1,7 @@
+Lake Mountain Landscape
+Photo by Bonnie Moreland
+Source: https://commons.wikimedia.org/wiki/File:Lake_Mountain_Landscape.jpg
+Original source: https://isorepublic.com/photo/lake-mountain-landscape/
+License: CC0 1.0 Universal Public Domain Dedication
+https://creativecommons.org/publicdomain/zero/1.0/
+Cropped and resized for the demo. The preview atlas applies the Actors shaders to this photo.

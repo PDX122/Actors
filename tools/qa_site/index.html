@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <title>Test log | Flashback Actors</title>
+  <link rel="icon" href="logo.png">
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="docs-header"><div class="header-inner"><button id="menu-toggle" aria-label="Toggle navigation" aria-expanded="false"><img class="icon" src="icons/menu.svg" alt="" aria-hidden="true"></button><a class="docs-brand" href="https://pdx122.github.io/Actors/"><img src="logo.png" alt="">Flashback Actors</a><span class="header-page">Test log</span><button id="theme-toggle" aria-label="Toggle dark mode"><img class="icon" src="icons/moon.svg" alt="" aria-hidden="true"></button><label class="header-search"><img class="icon" src="icons/search.svg" alt="" aria-hidden="true"><input type="search" id="global-search" placeholder="Search" aria-label="Search all test records"><kbd>Ctrl K</kbd></label><a class="repo-link" href="https://github.com/PDX122/Actors" target="_blank" rel="noopener"><img class="icon repo-icon" src="icons/github.svg" alt="" aria-hidden="true"><span>PDX122/Actors<small>0.11.1</small></span></a></div></header>
+  <div class="docs-layout">
+    <aside class="docs-nav" id="docs-nav"><nav aria-label="Documentation"><a href="https://pdx122.github.io/Actors/">Home</a><a href="https://pdx122.github.io/Actors/install/">Install</a><a href="https://pdx122.github.io/Actors/takes/">Record takes</a><a href="https://pdx122.github.io/Actors/changelog/">Changelog</a><a href="#log" class="current-doc">Test log</a><div class="subnav"><a href="#log">All activity</a><a href="#failures">Failures</a><a href="#updates">Updates</a><a href="#tests">Test inventory</a><a href="#images">Images</a></div></nav></aside>
+    <main>
+      <div class="intro"><h1>Test log</h1><p>Test runs, failed attempts and verified fixes for Flashback Actors.</p></div>
+      <p class="current-state" id="current-state" role="status">Loading saved results…</p>
+      <section id="image-preview" aria-label="Latest screenshots"></section>
+      <nav class="views" aria-label="Log view">
+        <a href="#log" data-view="log">All activity <span id="run-count"></span></a>
+        <a href="#failures" data-view="failures">Failures <span id="failure-count"></span></a>
+        <a href="#updates" data-view="updates">Updates</a>
+        <a href="#tests" data-view="tests">Test inventory</a>
+        <a href="#images" data-view="images">Images <span id="image-count"></span></a>
+      </nav>
+      <div class="filters"><label class="search-label"><span class="sr-only">Search the log</span><input type="search" id="search" placeholder="Search tests, errors or a batch name"></label><label class="version-label">Minecraft<select id="version"><option value="all">All versions</option></select></label></div>
+      <div class="list-heading"><span id="result-count"></span><span id="list-note">Newest first. Expand a row for details.</span></div>
+      <section id="activity" aria-label="Saved test activity"></section>
+      <div id="pagination" class="pagination"></div>
+      <details class="coverage"><summary>What these results do not cover</summary><p>Run outcomes are saved verdicts and recorded visual flags. Individual test names below come from the latest JUnit files; older per-test XML was overwritten by later runs. A later pass does not erase an earlier failure.</p><ul id="coverage-list"></ul></details>
+    </main>
+    <aside class="docs-toc"><strong>On this page</strong><a href="#log">Test activity</a><a href="#images">Screenshots</a><a href="https://github.com/PDX122/Actors/wiki/Test-log">Wiki <img class="icon" src="icons/external-link.svg" alt="" aria-hidden="true"></a><a href="#failures">Failed attempts</a><a href="#updates">Verified fixes</a><a href="#tests">Individual tests</a><a href="report.md" target="_blank" rel="noopener">Matrix report <img class="icon" src="icons/external-link.svg" alt="" aria-hidden="true"></a></aside>
+  </div>
+  <footer class="docs-footer"><div><span>MIT · PDX122</span><a href="https://pdx122.github.io/Actors/">Flashback Actors documentation</a></div><a href="https://github.com/PDX122/Actors" aria-label="GitHub repository">GitHub <img class="icon" src="icons/external-link.svg" alt="" aria-hidden="true"></a></footer>
+  <dialog id="image-viewer" aria-labelledby="image-title"><div class="image-heading"><h2 id="image-title">Capture</h2><button id="image-close" aria-label="Close capture">Close <img class="icon" src="icons/x.svg" alt="" aria-hidden="true"></button></div><img id="full-image" alt=""><p><button id="image-motion" hidden>Show animation frame <img class="icon" src="icons/play.svg" alt="" aria-hidden="true"></button> <a id="image-original" target="_blank" rel="noopener">Open original <img class="icon" src="icons/external-link.svg" alt="" aria-hidden="true"></a></p></dialog>
+  <noscript>JavaScript is needed to filter the log. The complete saved records are in data.json.</noscript>
+</body>
+</html>
