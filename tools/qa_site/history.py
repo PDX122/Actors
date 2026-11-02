@@ -83,6 +83,9 @@ def client_entry(directory, batch, root):
     if quality:
         checks.append({'name': 'Visual checks', 'status': 'failed' if issues else 'passed',
                        'detail': f"{quality.get('images', 0)} captures; {quality.get('motion_pairs', 0)} animation pairs; {len(issues)} flags."})
+    if quality.get('ui_sequence_frames'):
+        checks.append({'name': 'Vulkan morph and menu stability', 'status': 'failed' if issues else 'passed',
+                       'detail': f"{quality['ui_sequence_frames']} UI frames, including animation and cache replacement; largest menu change {quality.get('ui_max_changed_fraction',0):.2%}."})
     differences=quality.get('world_frame_differences', [])
     if differences:
         checks.append({'name': 'Morph library world stability',
@@ -156,6 +159,9 @@ def build_log(root, qa, build):
         world_files=sorted(directory.glob('visuals/*morph-world-stability/world-*.png'))
         if world_files:
             chosen.extend([world_files[0],world_files[-1]])
+        for scenario in ('morph-ui-stability','morph-ui-cache'):
+            sequence=sorted(directory.glob('visuals/*'+scenario+'/sequence/*/editor-ui.png'))
+            if sequence:chosen.extend([sequence[0],sequence[-1]])
         if not chosen and entry['status'] != 'passed':
             chosen = visual_files[-1:]
         for index, source in enumerate(chosen):
@@ -169,7 +175,9 @@ def build_log(root, qa, build):
                     temporary = thumbnail.with_suffix('.tmp')
                     image.save(temporary, 'WEBP', quality=80)
                     temporary.replace(thumbnail)
-            entry['images'].append({'label': source.parent.name.split('-', 1)[-1],
+            label=source.parent.name.split('-',1)[-1]
+            if source.parent.parent.name=='sequence':label=source.parents[2].name.split('-',1)[-1]+' frame '+source.parent.name
+            entry['images'].append({'label': label,
                                     'thumbnail': register('thumbs/' + key + '.webp', thumbnail),
                                     'url': register('media/' + key + '.png', source)})
         entries.append(entry)

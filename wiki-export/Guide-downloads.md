@@ -6,6 +6,8 @@ Choose the Actors build for your Minecraft version. Install it alongside matchin
 
 The current **0.11.1** builds are a **release candidate**. These are the packaged JARs from the validated release folder, not a newly published stable release. Use Java 21 for 1.21.x or Java 25 for 26.x.
 
+The site shows a build revision, such as **0.11.1.1**, so you can identify the newest update. Downloaded filenames and the installed mod version stay **0.11.1**.
+
 | Actors | Minecraft | Java | Download |
 |---|---|---|---|
 | 0.11.1 (Release candidate) | 1.21, 1.21.1 | 21 | [JAR](https://pdx122.github.io/Actors/assets/downloads/0.11.1/flashback-actors-1.21.1-0.11.1.jar) |

@@ -23,7 +23,8 @@ public final class ReleaseVisualChecks {
     private static Path root, captureFile;
     private static volatile Path pendingCapture;
     private static volatile Path pendingWorldCapture;
-    private static int worldFrames;
+    private static int worldFrames, uiFrames;
+    private static volatile int uiCompleted;
     private static int index, ticks, originalMode;
     private static boolean initialized, done, motionRequested, copyChecked;
     private static boolean originalCaptions, originalVoice, originalStudio;
@@ -95,6 +96,12 @@ public final class ReleaseVisualChecks {
                         }));
                     }
                 }
+                screens.add(new Screen("morph-ui-stability", () -> {
+                    MorphLibrary.open("cat", null); set(MorphLibrary.class, "pose", "walking");
+                }));
+                screens.add(new Screen("morph-ui-cache", () -> {
+                    MorphLibrary.open("cat", null); set(MorphLibrary.class, "pose", "sitting");
+                }));
                 screens.add(new Screen("morph-world-stability", () -> {
                     var client=Minecraft.getInstance();
                     var frame=ReleaseExportChecks.actor().take.frames.getFirst();
@@ -122,7 +129,7 @@ public final class ReleaseVisualChecks {
                 }));
                 if("1".equals(System.getenv("FBACTORS_VISUAL_FOCUS"))) {
                     Effects.add("noir",0);
-                    screens.removeIf(s -> !List.of("actor-setup","subtitles","studio-scene","studio-edit","studio-looks","shortcut-help","morph-cat-sitting","morph-zombie-sitting","morph-world-stability").contains(s.name));
+                    screens.removeIf(s -> !List.of("actor-setup","subtitles","studio-scene","studio-edit","studio-looks","shortcut-help","morph-cat-sitting","morph-zombie-sitting","morph-ui-stability","morph-ui-cache","morph-world-stability").contains(s.name));
                 }
             }
             if (index == screens.size()) {
@@ -136,7 +143,7 @@ public final class ReleaseVisualChecks {
                 done = true; return true;
             }
             if (ticks++ == 0) {
-                closeWindows(); screens.get(index).open.run(); captured = false; motionRequested=false; worldFrames=0;
+                closeWindows(); screens.get(index).open.run(); captured = false; motionRequested=false; worldFrames=0; uiFrames=0; uiCompleted=0;
                 Files.writeString(root.getParent().resolve("progress.txt"),(index+1)+"/"+screens.size()+" "+screens.get(index).name);
             }
             if (ticks == 12) {
@@ -151,12 +158,15 @@ public final class ReleaseVisualChecks {
                 motionRequested=true; captured=false;
                 pendingCapture=captureFile.getParent().resolve("motion.png");
             }
+            boolean uiSequence=screens.get(index).name.startsWith("morph-ui-");
+            if(screens.get(index).name.equals("morph-ui-cache") && ticks%8==0)
+                set(MorphLibrary.class,"page",(ticks/8)%((pdx.dev.fbactors.morph.Morph.registry().all().size()+3)/4));
             boolean stability=screens.get(index).name.equals("morph-world-stability");
             if(stability && ticks>12 && captured && worldFrames<12) {
                 captured=false;
                 pendingWorldCapture=captureFile.getParent().resolve(String.format("world-%02d.png",worldFrames++));
             }
-            if (ticks > 12 && captured && (!animated || motionRequested) && (!stability || worldFrames==12)) { index++; ticks = 0; }
+            if (ticks > 12 && captured && (!animated || motionRequested) && (!stability || worldFrames==12) && (!uiSequence || uiCompleted>=90)) { index++; ticks = 0; }
             if (ticks > 300) throw new IllegalStateException("Screenshot timeout: " + screens.get(index).name);
         } catch (Exception | LinkageError failure) {
             restoreSettings();
@@ -208,6 +218,13 @@ public final class ReleaseVisualChecks {
     }
 
     public static void captureFrame() {
+        if(initialized && !done && index<screens.size() && ticks>12
+            && screens.get(index).name.startsWith("morph-ui-") && uiFrames<90) {
+            Path frame=captureFile.getParent().resolve("sequence").resolve(String.format("%03d",uiFrames++)).resolve("editor-ui.png");
+            try { Files.createDirectories(frame.getParent()); }
+            catch(Exception failure) { error=failure.toString(); return; }
+            ReleaseFrameCapture.capture(frame,failure -> { if(failure!=null) error=failure; uiCompleted++; });
+        }
         Path world=pendingWorldCapture;
         if(world!=null) {
             pendingWorldCapture=null;

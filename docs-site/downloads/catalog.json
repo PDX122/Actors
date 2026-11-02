@@ -13,8 +13,8 @@
           ],
           "java": 21,
           "filename": "flashback-actors-1.21.1-0.11.1.jar",
-          "sha256": "e52251c580ff2734887bbbd5dc47e0057e77a3a767606f10a502f03b4e95e362",
-          "bytes": 5077815
+          "sha256": "621d66086de7df1302657a08f0d5be6b8ba5ce9196f08743e5efba0adb75b7de",
+          "bytes": 5079904
         },
         {
           "family": "1.21.4",
@@ -23,8 +23,8 @@
           ],
           "java": 21,
           "filename": "flashback-actors-1.21.4-0.11.1.jar",
-          "sha256": "5c779a72ac9f5ae31b2be84f98a50028cb065b05d7f468a24ec9e148aa42401a",
-          "bytes": 5079595
+          "sha256": "5a9ea6204dfb2f909e86441404de7bca7bfb40657469cc8071cfe691ef654c0a",
+          "bytes": 5081640
         },
         {
           "family": "1.21.5",
@@ -33,8 +33,8 @@
           ],
           "java": 21,
           "filename": "flashback-actors-1.21.5-0.11.1.jar",
-          "sha256": "fd4e8cf386e346b02c4aacb862ab12e565da4216a18706decc4aa58c505b1711",
-          "bytes": 5081286
+          "sha256": "b7eb3faaea69da194733f9ab87c6bf52486b5edb172ddb3629c7c5d44664c1dc",
+          "bytes": 5083331
         },
         {
           "family": "1.21.8",
@@ -45,8 +45,8 @@
           ],
           "java": 21,
           "filename": "flashback-actors-1.21.8-0.11.1.jar",
-          "sha256": "d699f21f865e857e0c1605fbfb6cbfd7b9720bb95ee9b100704ac8ffeb3bcd3c",
-          "bytes": 5083283
+          "sha256": "bdaa2825dfc8655851bc0caeb22c8fc67d0bc472f22fe2aceeda3b0669108685",
+          "bytes": 5085328
         },
         {
           "family": "1.21.10",
@@ -56,8 +56,8 @@
           ],
           "java": 21,
           "filename": "flashback-actors-1.21.10-0.11.1.jar",
-          "sha256": "23fc504222f608326b289a72ca9e7bfb0e3bd9416b3ca05f7568889a0cf24bac",
-          "bytes": 5085564
+          "sha256": "320f6e3a20e6e882dd99460f802d7ae0600158ff6744ab78d6764bb5f4355702",
+          "bytes": 5087653
         },
         {
           "family": "1.21.11",
@@ -66,8 +66,8 @@
           ],
           "java": 21,
           "filename": "flashback-actors-1.21.11-0.11.1.jar",
-          "sha256": "1f55c12900d788537504f7fb7c1dc16b20da39bf4b7b840996f119b75041052d",
-          "bytes": 5086314
+          "sha256": "4081228cc23de4616e42fe1ce04f026aa63979b2885c9e5ca02f9d0452dac592",
+          "bytes": 5088359
         },
         {
           "family": "26.1.2",
@@ -78,8 +78,8 @@
           ],
           "java": 25,
           "filename": "flashback-actors-26.1.2-0.11.1.jar",
-          "sha256": "94eb1ce39b7f40bd82417446ac47be817a2b8a48eb326ed91b1d613c24591414",
-          "bytes": 5090401
+          "sha256": "3e569446b4f89b74d63ec0464702e46d891d72e78c49f66b3fc5156a8d5c9178",
+          "bytes": 5092436
         },
         {
           "family": "26.2",
@@ -88,8 +88,8 @@
           ],
           "java": 25,
           "filename": "flashback-actors-26.2-0.11.1.jar",
-          "sha256": "cd0f3c7144e8c7e6558707d58e734a84e00bcbc6dfe0b76cec00e505a269b393",
-          "bytes": 5092469
+          "sha256": "9ea1ccd147ebd49091d0982cb683ac652c4d0a46b5a4ddeca8f9c1b1353fc99c",
+          "bytes": 5094504
         },
         {
           "family": "26.3",
@@ -98,19 +98,19 @@
           ],
           "java": 25,
           "filename": "flashback-actors-26.3-0.11.1.jar",
-          "sha256": "499a3bd34e6ad55020263d30175c4d8503c50e0d5d19e82eece8855fc111a9b0",
-          "bytes": 5139274
+          "sha256": "181d3f1d518ea90a75a189093009d073863471fd56da6f87981f847111aa8166",
+          "bytes": 5142239
         }
       ],
       "archive": {
         "filename": "flashback-actors-0.11.1-all-versions.zip",
-        "bytes": 45096795,
-        "sha256": "20c5a2d8a30e5065fda6249a5d9a39635d04d0805c851712a5ef2a7a839bd825"
+        "bytes": 45111797,
+        "sha256": "a80dd029738c781f8a0f147c1fe5e6c9beb97fecfb127427001de5e978286643"
       },
       "checksums": "SHA256SUMS.txt",
-      "revision": 1,
-      "display_version": "0.11.1.1",
-      "uploaded_at": "2026-11-02T06:32:06Z"
+      "uploaded_at": "2026-11-02T07:16:19Z",
+      "revision": 2,
+      "display_version": "0.11.1.2"
     }
   ]
 }

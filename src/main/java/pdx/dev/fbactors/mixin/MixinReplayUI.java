@@ -13,6 +13,8 @@ import pdx.dev.fbactors.ui.SkinPicker;
 public class MixinReplayUI {
     @Inject(method = "drawOverlayInternal", at = @At("RETURN"))
     private static void fbactors$releaseEvidence(CallbackInfo ci) {
+        pdx.dev.fbactors.debug.ErrorRecovery.run("Deferred morph previews",
+            () -> pdx.dev.fbactors.morph.MorphPreviews.renderQueue().finishFrame());
         pdx.dev.fbactors.selftest.ReleaseVisualChecks.captureFrame();
     }
 

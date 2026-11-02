@@ -28,6 +28,9 @@ public final class MorphPreviewBridge {
     }
     private static final class Model implements MorphPreviewModel {
         private float rotation;
+        private boolean closed;
+        private MorphThumbnail image;
+        private com.mojang.renderpearl.api.commands.GpuFence retirementFence;
         @Override public void rotation(float degrees) { rotation = degrees; }
         @Override public void pose(String pose) { animator.pose(pose); }
         private final Minecraft client = Minecraft.getInstance();
@@ -63,6 +66,17 @@ public final class MorphPreviewBridge {
         }
         @Override public java.util.List<String> stages() { var names=CustomMobs.animations(CustomMobs.entity(mob));return names.isEmpty()?animator.stages():names; }
         @Override public MorphThumbnail render(MorphPreviewPlayback.Frame frame) {
+            if (closed) return null;
+            MorphPreviews.renderQueue().schedule(this, () -> {
+                if (!closed) pdx.dev.fbactors.debug.ErrorRecovery.run("Native morph preview", () ->
+                    MorphPreviews.renderIsolated(() -> {
+                        image = renderNow(frame);
+                        return image;
+                    }));
+            });
+            return image;
+        }
+        private MorphThumbnail renderNow(MorphPreviewPlayback.Frame frame) {
             animator.apply(frame);
             CustomMobs.preview(mob,frame.stage(),frame.localTicks());
             var projection = RenderSystem.getProjectionMatrixBuffer();
@@ -102,12 +116,24 @@ public final class MorphPreviewBridge {
             }
         }
         @Override public void close() {
-            CustomMobs.release(mob);
-            try { renderer.close(); }
-            finally {
-                try { previewFeatures.close(); }
-                finally { previewBuffers.close(); }
+            if (closed) return;
+            closed = true;
+            MorphPreviews.renderQueue().retire(this, this::releaseAfterDraw);
+        }
+        private boolean releaseAfterDraw() {
+            if (retirementFence == null) retirementFence = RenderSystem.getDevice().createCommandEncoder().createFence();
+            if (!retirementFence.awaitCompletion(0)) return false;
+            try {
+                CustomMobs.release(mob);
+                try { renderer.close(); }
+                finally {
+                    try { previewFeatures.close(); }
+                    finally { previewBuffers.close(); }
+                }
+            } finally {
+                retirementFence.close();
             }
+            return true;
         }
     }
 }

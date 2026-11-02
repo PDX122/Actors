@@ -49,6 +49,8 @@ public final class MorphPreviews {
     private static boolean unavailable;
     private static final java.util.Set<String> failed = new java.util.HashSet<>();
     private static int openNulls, renderNulls;
+    private static final PreviewRenderQueue RENDER_QUEUE = new PreviewRenderQueue();
+    public static PreviewRenderQueue renderQueue() { return RENDER_QUEUE; }
     private MorphPreviews() {}
     public static MorphPreviewPlayback playback() { return PLAYBACK; }
     public static java.util.List<String> stages() {

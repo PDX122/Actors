@@ -33,6 +33,7 @@ def quality(directory):
         return {'issues': ['No completed screenshot manifest'], 'images': 0, 'motion_pairs': 0}
     names = manifest.read_text().splitlines()[1:]
     issues, images, pairs, stability = [], [], 0, []
+    ui_frames, ui_max_change = 0, 0.0
     for index, name in enumerate(names):
         path = directory / 'visuals' / f'{index:03}-{name}' / 'editor-ui.png'
         if not path.exists():
@@ -61,6 +62,22 @@ def quality(directory):
                     values=model.getcolors(model.width*model.height) or []
                     if model.width*model.height-max((n for n,c in values),default=0)<25:
                         issues.append(f'{name}: empty catalog card {card+1}')
+            if name.startswith('morph-ui-'):
+                frames=sorted(path.parent.glob('sequence/*/editor-ui.png'))
+                ui_frames+=len(frames)
+                if len(frames)!=90:issues.append(f'{name}: expected 90 UI frames, got {len(frames)}')
+                previous=None
+                for frame in frames:
+                    with Image.open(frame) as source:
+                        menu=source.convert('RGB').crop((12,36,770,182))
+                        model=source.convert('RGB').crop((510,260,690,360))
+                    if name=='morph-ui-stability' and previous is not None:
+                        changed=sum(n for n,c in (ImageChops.difference(previous,menu).getcolors(menu.width*menu.height) or []) if max(c)>50)/(menu.width*menu.height)
+                        ui_max_change=max(ui_max_change,changed)
+                        if changed>.02:issues.append(f'{name}: menu flicker in {frame.parent.name} ({changed:.1%} pixels)')
+                    previous=menu
+                    if sum(n for n,c in (model.getcolors(model.width*model.height) or []) if max(c)>70)<25:
+                        issues.append(f'{name}: missing inspector model in {frame.parent.name}')
             if name == 'morph-world-stability':
                 frames=sorted(path.parent.glob('world-*.png'))
                 if len(frames)!=12:
@@ -87,7 +104,7 @@ def quality(directory):
                     if diff.getbbox() is None:
                         issues.append(f'{name}: preview did not animate between captures')
             images.append(str(path.relative_to(directory)))
-    return {'issues': issues, 'images': len(images), 'motion_pairs': pairs, 'world_frame_differences': stability, 'files': images}
+    return {'issues': issues, 'images': len(images), 'motion_pairs': pairs, 'world_frame_differences': stability, 'ui_sequence_frames': ui_frames, 'ui_max_changed_fraction': ui_max_change, 'files': images}
 
 
 def build_gallery(output,versions):

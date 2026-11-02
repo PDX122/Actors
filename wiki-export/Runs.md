@@ -4,6 +4,34 @@ Client attempts, build results and verified updates. Individual test results are
 
 ## Client run / 26.3
 
+**PASSED** · 2026-11-02T07:04:15.037615+00:00 · `native-menu-queue`
+
+Supplemental enabled-feature visual checks
+
+- **PASSED** Client harness: Supplemental enabled-feature visual checks
+- **PASSED** Recording and sharing: PASS: setup, countdown, movement, crouch/sprint inputs, item use deduplication, stop, binary take and sharing bundle roundtrips
+- **PASSED** Camera export: PASS: real MP4 export, nonzero start tick, all 14 modes reached accurate camera position
+- **PASSED** Visual checks: 11 captures; 0 animation pairs; 0 flags.
+- **PASSED** Vulkan morph and menu stability: 180 UI frames, including animation and cache replacement; largest menu change 0.00%.
+- **PASSED** Morph library world stability: 12 world frames; largest changed-pixel fraction 0.00%.
+- **PASSED** Decoded video: h264; 640 x 360; 56 frames.
+
+![morph-cat-sitting](images/native-menu-queue-26-3-0.webp)
+
+![morph-world-stability](images/native-menu-queue-26-3-1.webp)
+
+![morph-world-stability](images/native-menu-queue-26-3-2.webp)
+
+![morph-ui-stability frame 000](images/native-menu-queue-26-3-3.webp)
+
+![morph-ui-stability frame 089](images/native-menu-queue-26-3-4.webp)
+
+![morph-ui-cache frame 000](images/native-menu-queue-26-3-5.webp)
+
+![morph-ui-cache frame 089](images/native-menu-queue-26-3-6.webp)
+
+## Client run / 26.3
+
 **PASSED** · 2026-11-02T06:09:17.418216+00:00 · `morph-isolation-final`
 
 Supplemental enabled-feature visual checks
@@ -27,7 +55,7 @@ Supplemental enabled-feature visual checks
 
 1 visual check(s) flagged. Client verdict: ERROR. Client exited without a saved verdict. See the failure context below.
 
-A later morph-isolation-final run passed. This earlier attempt remains failed.
+A later native-menu-queue run passed. This earlier attempt remains failed.
 
 - **ERROR** Client harness: 
 - **FAILED** Visual checks: 0 captures; 0 animation pairs; 1 flags.
@@ -113,7 +141,7 @@ Supplemental enabled-feature visual checks
 
 1 visual check(s) flagged. Client verdict: ERROR. Client exited without a saved verdict. See the failure context below.
 
-A later morph-isolation-final run passed. This earlier attempt remains failed.
+A later native-menu-queue run passed. This earlier attempt remains failed.
 
 - **ERROR** Client harness: 
 - **FAILED** Visual checks: 0 captures; 0 animation pairs; 1 flags.

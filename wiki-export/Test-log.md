@@ -2,7 +2,7 @@
 
 0.11.1: **9/9 clients passed**, 4,644 unit tests and 8 GPU tests in the latest matrix.
 
-The history retains 77 records, including 20 failed or errored attempts. Older individual test XML was overwritten; the test inventory is the latest saved XML.
+The history retains 78 records, including 20 failed or errored attempts. Older individual test XML was overwritten; the test inventory is the latest saved XML.
 
 [[Failed attempts|Failures]] · [[Screenshots|Images]] · [[Verified fixes|Updates]] · [[Individual tests|Tests]]
 
@@ -18,15 +18,16 @@ The history retains 77 records, including 20 failed or errored attempts. Older i
 
 | UTC | Result | Record | Batch |
 |---|---|---|---|
-| 2026-11-02T06:13:20 | PASSED | Unit tests / 26.3 | JUnit XML |
-| 2026-11-02T06:13:09 | PASSED | Unit tests / 26.2 | JUnit XML |
-| 2026-11-02T06:12:57 | PASSED | Unit tests / 26.1.2 | JUnit XML |
-| 2026-11-02T06:12:44 | PASSED | Unit tests / 1.21.8 | JUnit XML |
-| 2026-11-02T06:12:33 | PASSED | Unit tests / 1.21.5 | JUnit XML |
-| 2026-11-02T06:12:21 | PASSED | Unit tests / 1.21.4 | JUnit XML |
-| 2026-11-02T06:12:08 | PASSED | Unit tests / 1.21.11 | JUnit XML |
-| 2026-11-02T06:11:52 | PASSED | Unit tests / 1.21.10 | JUnit XML |
-| 2026-11-02T06:11:37 | PASSED | Unit tests / 1.21.1 | JUnit XML |
+| 2026-11-02T07:08:57 | PASSED | Unit tests / 26.3 | JUnit XML |
+| 2026-11-02T07:08:47 | PASSED | Unit tests / 26.2 | JUnit XML |
+| 2026-11-02T07:08:35 | PASSED | Unit tests / 26.1.2 | JUnit XML |
+| 2026-11-02T07:08:21 | PASSED | Unit tests / 1.21.8 | JUnit XML |
+| 2026-11-02T07:08:07 | PASSED | Unit tests / 1.21.5 | JUnit XML |
+| 2026-11-02T07:07:52 | PASSED | Unit tests / 1.21.4 | JUnit XML |
+| 2026-11-02T07:07:36 | PASSED | Unit tests / 1.21.11 | JUnit XML |
+| 2026-11-02T07:07:22 | PASSED | Unit tests / 1.21.10 | JUnit XML |
+| 2026-11-02T07:07:07 | PASSED | Unit tests / 1.21.1 | JUnit XML |
+| 2026-11-02T07:04:15 | PASSED | Client run / 26.3 | native-menu-queue |
 | 2026-11-02T06:09:17 | PASSED | Client run / 26.3 | morph-isolation-final |
 | 2026-11-02T06:07:42 | ERROR | Client run / 26.3 | morph-isolation-world |
 | 2026-11-02T06:07:00 | PASSED | Client run / 26.2 | morph-isolation-world |

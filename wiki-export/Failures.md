@@ -8,7 +8,7 @@
 
 1 visual check(s) flagged. Client verdict: ERROR. Client exited without a saved verdict. See the failure context below.
 
-A later morph-isolation-final run passed. This earlier attempt remains failed.
+A later native-menu-queue run passed. This earlier attempt remains failed.
 
 - **ERROR** Client harness: 
 - **FAILED** Visual checks: 0 captures; 0 animation pairs; 1 flags.
@@ -39,7 +39,7 @@ At <checkout>\tools\harness.ps1:99 char:32
 
 1 visual check(s) flagged. Client verdict: ERROR. Client exited without a saved verdict. See the failure context below.
 
-A later morph-isolation-final run passed. This earlier attempt remains failed.
+A later native-menu-queue run passed. This earlier attempt remains failed.
 
 - **ERROR** Client harness: 
 - **FAILED** Visual checks: 0 captures; 0 animation pairs; 1 flags.

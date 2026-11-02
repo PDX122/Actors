@@ -246,10 +246,21 @@ class MorphPreviewIsolationTest {
                 () -> compat + " must own the staged vertex buffers used by preview features");
             assertTrue(bridge.contains("new net.minecraft.client.renderer.feature.FeatureRenderDispatcher("));
             assertTrue(bridge.contains("renderer.prepare(draw, output, previewFeatures, 1)"));
-            String render = methodBody(bridge, "MorphThumbnail render(");
+            String render = methodBody(bridge, compat.equals("mc263") ? "MorphThumbnail renderNow(" : "MorphThumbnail render(");
             assertTrue(render.contains("finally {") && render.contains("previewBuffers.endFrame()"));
-            String close = methodBody(bridge, "public void close()");
+            String close = methodBody(bridge, compat.equals("mc263") ? "boolean releaseAfterDraw(" : "public void close()");
             assertTrue(close.contains("previewFeatures.close()") && close.contains("previewBuffers.close()"));
         }
+    }
+    @Test void nativePreviewWaitsForUiSubmissionAndGpuRetirement() {
+        String bridge=read(repoRoot(),"compat/mc263/java/pdx/dev/fbactors/morph/MorphPreviewBridge.java");
+        String render=methodBody(bridge,"MorphThumbnail render(");
+        assertTrue(render.contains("renderQueue().schedule("));
+        assertFalse(render.contains("renderer.prepare("));
+        String release=methodBody(bridge,"boolean releaseAfterDraw(");
+        assertTrue(release.indexOf("awaitCompletion(0)")<release.indexOf("renderer.close()"));
+        String hook=read(repoRoot(),"src/main/java/pdx/dev/fbactors/mixin/MixinReplayUI.java");
+        assertTrue(hook.contains("at = @At(\"RETURN\")"));
+        assertTrue(hook.contains("renderQueue().finishFrame()"));
     }
 }

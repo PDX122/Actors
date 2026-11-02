@@ -6,6 +6,9 @@ and older builds refuse newer files at the version check.
 
 ## 0.11.1 (in development)
 
+- Changed 26.3 Vulkan morph previews to render after the ImGui draw is submitted.
+  Preview textures stay alive until a GPU fence confirms the menu has finished using them.
+
 - Fixed world flashing while the Morph library is open on 26.2 and 26.3.
   Preview rendering now owns its feature renderer and GPU buffers.
 
