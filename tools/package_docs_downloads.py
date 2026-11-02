@@ -61,6 +61,7 @@ def package(source,output):
         old={b['filename']:b['sha256'] for b in previous['builds']}
         current={b['filename']:b['sha256'] for b in builds}
         if old!=current:revision+=1
+    record['uploaded_at']=previous.get('uploaded_at') if previous and revision==previous.get('revision',1) else None
     record['revision']=revision
     record['display_version']=f'{version}.{revision}'
     catalog['releases']=[record]+[r for r in catalog['releases'] if r['version']!=version]

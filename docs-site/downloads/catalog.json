@@ -109,7 +109,8 @@
       },
       "checksums": "SHA256SUMS.txt",
       "revision": 1,
-      "display_version": "0.11.1.1"
+      "display_version": "0.11.1.1",
+      "uploaded_at": "2026-11-02T06:32:06Z"
     }
   ]
 }

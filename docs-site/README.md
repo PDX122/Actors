@@ -74,3 +74,7 @@ Each release has a site revision such as `0.11.1.1`. Packaging increments it whe
 the JAR checksums change and retains it when the same JARs are packaged again.
 The revision appears on the downloads page and in cache keys. Filenames and
 `fabric.mod.json` keep the original mod version.
+
+Upload dates are stored in UTC and displayed in each visitor's local timezone.
+The Pages build preserves the timestamp for matching JAR checksums and stamps
+new uploads. Rebuilding the docs does not change an existing upload date.

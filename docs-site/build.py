@@ -2,6 +2,9 @@ from pathlib import Path
 from html import escape, unescape
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
+from urllib.request import urlopen
+from urllib.error import HTTPError
+from datetime import datetime, timezone
 import argparse
 import json
 import re
@@ -77,6 +80,30 @@ def rewrite(content, prefix, known):
 def size_label(size):
     return f'{size / 1024**2:.1f} MiB'
 
+def stamp_upload_dates():
+    path=BASE/'downloads/catalog.json'
+    catalog=json.loads(path.read_text(encoding='utf-8'))
+    try:
+        with urlopen('https://pdx122.github.io/Actors/assets/downloads/catalog.json',timeout=30) as response:
+            published=json.load(response)
+    except HTTPError as error:
+        if error.code!=404:raise
+        published={'releases':[]}
+    now=datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00','Z')
+    for release in catalog['releases']:
+        fingerprint={b['filename']:b['sha256'] for b in release['builds']}
+        previous=next((r for r in published['releases'] if r['version']==release['version']
+            and {b['filename']:b['sha256'] for b in r['builds']}==fingerprint),{})
+        release['uploaded_at']=previous.get('uploaded_at') or release.get('uploaded_at') or now
+    path.write_text(json.dumps(catalog,indent=2)+'\n',encoding='utf-8')
+
+def upload_label(release):
+    value=release.get('uploaded_at')
+    if not value:return 'Pending upload'
+    date=datetime.fromisoformat(value.replace('Z','+00:00')).astimezone(timezone.utc)
+    fallback=date.strftime('%b %d, %Y at %H:%M UTC')
+    return f'Uploaded <time data-upload-time datetime="{escape(value,quote=True)}">{fallback}</time>'
+
 def download_sections(prefix):
     catalog=json.loads((BASE/'downloads/catalog.json').read_text())
     versions=list(dict.fromkeys(v for release in catalog['releases'] for build in release['builds'] for v in build['minecraft']))
@@ -86,7 +113,8 @@ def download_sections(prefix):
     for release in catalog['releases']:
         version=release['version'];base=prefix+'assets/downloads/'+version+'/'
         display_version=escape(release.get('display_version',version));query='?build='+display_version
-        rows+=f'<section class="download-release"><div class="release-heading"><strong>Actors {escape(version)}</strong><span>Build {display_version} · {escape(release["label"])}</span></div>'
+        uploaded=upload_label(release)
+        rows+=f'<section class="download-release"><div class="release-heading"><strong>Actors {escape(version)}</strong><span>Build {display_version} · {escape(release["label"])}</span></div><p class="download-upload">{uploaded}</p>'
         for build in release['builds']:
             versions_label=', '.join(build['minecraft'])
             supported=escape(json.dumps(build['minecraft']),quote=True)
@@ -94,7 +122,7 @@ def download_sections(prefix):
             rows+=f'<article class="download-build" data-minecraft="{supported}"><div class="build-top"><div><h3>Minecraft {escape(versions_label)}</h3><p>Build {display_version} · Java {build["java"]} · {size_label(build["bytes"])}</p></div><a class="download-button" href="{base+filename+query}" download="{filename}" aria-label="Download Actors {display_version} for Minecraft {escape(versions_label)}">Download JAR {icon("download",prefix)}</a></div><details class="download-details"><summary>Checksum and filename</summary><code class="download-filename">{filename}</code><div class="download-hash"><code>{sha}</code><button type="button" data-copy-sha="{sha}">Copy SHA-256</button></div></details></article>'
         rows+='</section>'
         archive=release['archive'];name=escape(archive['filename']);sha=archive['sha256']
-        bundles+=f'<section class="download-bundle"><div class="build-top"><div><h3>Actors {escape(version)}: all versions</h3><p>{len(release["builds"])} JARs · {size_label(archive["bytes"])} · {escape(release["label"])}</p></div><a class="download-button" href="{base+name+query}" download="{name}">Download ZIP {icon("download",prefix)}</a></div><p><a href="{base+release["checksums"]+query}" download>Download checksums</a></p><details class="download-details"><summary>ZIP checksum</summary><div class="download-hash"><code>{sha}</code><button type="button" data-copy-sha="{sha}">Copy SHA-256</button></div></details></section>'
+        bundles+=f'<section class="download-bundle"><div class="build-top"><div><h3>Actors {escape(version)}: all versions</h3><p>{len(release["builds"])} JARs · {size_label(archive["bytes"])} · {escape(release["label"])}</p></div><a class="download-button" href="{base+name+query}" download="{name}">Download ZIP {icon("download",prefix)}</a></div><p class="download-upload">{uploaded}</p><p><a href="{base+release["checksums"]+query}" download>Download checksums</a></p><details class="download-details"><summary>ZIP checksum</summary><div class="download-hash"><code>{sha}</code><button type="button" data-copy-sha="{sha}">Copy SHA-256</button></div></details></section>'
     rows+='<p id="download-empty" hidden>No packaged build matches this Minecraft version.</p><p id="checksum-status" role="status" aria-live="polite"></p>'
     return rows,bundles
 
@@ -165,4 +193,7 @@ def build(output):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description='Build Flashback Actors documentation')
     parser.add_argument('--output',type=Path,default=BASE/'site')
-    build(parser.parse_args().output)
+    parser.add_argument('--publish',action='store_true')
+    args=parser.parse_args()
+    if args.publish:stamp_upload_dates()
+    build(args.output)

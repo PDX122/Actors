@@ -21,6 +21,13 @@ for(const pre of document.querySelectorAll('.prose pre')){const code=pre.querySe
 for(const image of document.querySelectorAll('.prose img[src*="screenshots/"]')){const link=document.createElement('a');link.href=image.src;link.target='_blank';link.rel='noopener';link.setAttribute('aria-label','Open screenshot: '+image.alt);image.replaceWith(link);link.append(image);}
 
 
+for(const time of document.querySelectorAll('[data-upload-time]')){
+ const date=new Date(time.dateTime);
+ if(!Number.isNaN(date.getTime())){
+  time.textContent=new Intl.DateTimeFormat(undefined,{year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'}).format(date);
+  time.title=date.toUTCString();
+ }
+}
 const downloadFilter=select('#minecraft-download-version');
 if(downloadFilter){
  const filterDownloads=()=>{let count=0;for(const row of document.querySelectorAll('.download-build')){const matches=downloadFilter.value==='all'||JSON.parse(row.dataset.minecraft).includes(downloadFilter.value);row.hidden=!matches;if(matches)count++;}for(const release of document.querySelectorAll('.download-release'))release.hidden=![...release.querySelectorAll('.download-build')].some(row=>!row.hidden);select('#download-count').textContent=count+' build'+(count===1?'':'s');select('#download-empty').hidden=count>0;};

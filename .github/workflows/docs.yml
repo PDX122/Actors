@@ -25,7 +25,7 @@ jobs:
         with:
           python-version: 3.x
       - run: pip install -r docs-site/requirements.txt
-      - run: python docs-site/build.py
+      - run: python docs-site/build.py --publish
       - run: python docs-site/check.py --static-only
       - uses: actions/upload-pages-artifact@v5
         with:
