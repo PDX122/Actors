@@ -50,8 +50,10 @@ public abstract class MixinNativeActorDraw {
 
     @Unique private void fbactors$capture(Consumer<RenderPass> draw) {
         var pass = (RenderPass) (Object) this;
-        if (!NativeActorMasks.tracked(pass) || !NativeActorMasks.candidate(uniforms)) return;
-        NativeActorMasks.capture(pass, new NativeActorMasks.DrawState(boundPipeline, new HashMap<>(uniforms),
+        if (!NativeActorMasks.tracked(pass)) return;
+        var bound = NativeActorMasks.boundUniforms(boundPipeline, uniforms);
+        if (!NativeActorMasks.candidate(bound)) return;
+        NativeActorMasks.capture(pass, new NativeActorMasks.DrawState(boundPipeline, bound,
             fbactors$boundVertices.clone(), fbactors$boundIndex, fbactors$indexType, fbactors$constants, fbactors$scissor), draw);
     }
 

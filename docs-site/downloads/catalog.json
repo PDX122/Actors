@@ -98,19 +98,19 @@
           ],
           "java": 25,
           "filename": "flashback-actors-26.3-0.11.2.jar",
-          "sha256": "5ae6b60c8e13e614638bb74f4e00ac47a90d7e60f32b670670cb16f74b6490de",
-          "bytes": 5132413
+          "sha256": "0fa0f5b0cda99c8b8db99ff08ae58fbe5267d87366495e3e1d886fc349e22db9",
+          "bytes": 5132821
         }
       ],
       "archive": {
         "filename": "flashback-actors-0.11.2-all-versions.zip",
-        "bytes": 45026774,
-        "sha256": "3847d82eb8d1ae50d15d9d4a3b5d1163f888a813ec938304ff9b049d7527838e"
+        "bytes": 45027151,
+        "sha256": "f542276935cd0c6116b50466fac802d9b45a94ea577c9eb151d16cdbc557f7f5"
       },
       "checksums": "SHA256SUMS.txt",
-      "uploaded_at": "2026-11-03T07:03:55Z",
-      "revision": 1,
-      "display_version": "0.11.2.1"
+      "uploaded_at": "2026-11-03T07:47:44Z",
+      "revision": 2,
+      "display_version": "0.11.2.2"
     },
     {
       "version": "0.11.1",

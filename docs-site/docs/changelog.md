@@ -6,6 +6,10 @@ and older builds refuse newer files at the version check.
 
 ## 0.11.2 (release candidate)
 
+- Fixed actor effects spreading onto clouds in 26.3 when a render pass retained
+  an actor texture from an earlier draw. Actor mask capture now considers only
+  bindings declared by the active pipeline.
+
 - Improved the /start countdown with bold colored numbers, rising final-three
   tones and a green ACTION! cue. Every second of the configured delay plays a
   sound directly to the recording player. Removed the duplicate start cue.

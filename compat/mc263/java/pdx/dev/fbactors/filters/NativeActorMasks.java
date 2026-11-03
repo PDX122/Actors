@@ -56,6 +56,16 @@ public final class NativeActorMasks {
 
     public static boolean tracked(RenderPass pass) { return !replaying && !failed && PASSES.containsKey(pass); }
 
+    public static Map<String, Object> boundUniforms(com.mojang.renderpearl.frontend.FrontendRenderPipeline pipeline,
+                                                    Map<String, Object> uniforms) {
+        var bound = new HashMap<String, Object>();
+        if (pipeline != null) for (var uniform : pipeline.uniforms()) {
+            var value = uniforms.get(uniform.name());
+            if (value != null) bound.put(uniform.name(), value);
+        }
+        return bound;
+    }
+
     public static boolean candidate(Map<String, Object> uniforms) {
         for (Object uniform : uniforms.values())
             if (uniform instanceof TextureViewAndSampler sample && (MATERIALS.containsKey(sample.view().texture()) || OCCLUDERS.contains(sample.view().texture()))) return true;
