@@ -4,8 +4,10 @@ import com.moulberry.flashback.playback.ReplayPlayer;
 import com.moulberry.flashback.playback.ReplayServer;
 import pdx.dev.fbactors.FlashbackActors;
 import pdx.dev.fbactors.take.ActorTake;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundClearTitlesPacket;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
@@ -156,7 +158,6 @@ public final class ActorMode {
                 }
                 if (countdownTicks <= 0) {
                     phase = Phase.RECORDING;
-                    countdown(viewer, 0);
 
                     viewer.setGameMode(GameType.SURVIVAL);
                     viewer.setInvisible(false);
@@ -217,16 +218,23 @@ public final class ActorMode {
 
     private static void countdown(ServerPlayer viewer, int second) {
         boolean go = second <= 0;
-        viewer.connection.send(new ClientboundSetTitlesAnimationPacket(0, go ? 14 : 16, go ? 8 : 4));
-        viewer.connection.send(new ClientboundSetTitleTextPacket(
-            go ? Component.translatable("fbactors.actor.countdown_go")
-                : Component.literal(String.valueOf(second))));
-        viewer.connection.send(new ClientboundSetSubtitleTextPacket(
-            go ? (pdx.dev.fbactors.settings.FbSettings.settings().runHints ? endRunHint() : Component.literal(nextName()))
-                : Component.translatable("fbactors.actor.countdown_subtitle")));
-        viewer.level().playSound(null, viewer.getX(), viewer.getY(), viewer.getZ(),
-            go ? SoundEvents.NOTE_BLOCK_PLING : SoundEvents.NOTE_BLOCK_HAT,
-            SoundSource.MASTER, 0.7f, go ? 1.5f : 1.0f);
+        viewer.connection.send(new ClientboundSetTitlesAnimationPacket(0, go ? 20 : 16, go ? 10 : 4));
+        var title=go ? Component.translatable("fbactors.actor.countdown_go") : Component.literal(String.valueOf(second));
+        var color=go ? ChatFormatting.GREEN : switch(second) {
+            case 1 -> ChatFormatting.RED;
+            case 2 -> ChatFormatting.YELLOW;
+            case 3 -> ChatFormatting.GOLD;
+            default -> ChatFormatting.AQUA;
+        };
+        viewer.connection.send(new ClientboundSetTitleTextPacket(title.withStyle(color,ChatFormatting.BOLD)));
+        var subtitle=go ? (pdx.dev.fbactors.settings.FbSettings.settings().runHints ? endRunHint() : Component.literal(nextName()))
+            : Component.translatable("fbactors.actor.countdown_subtitle");
+        viewer.connection.send(new ClientboundSetSubtitleTextPacket(subtitle.copy().withStyle(ChatFormatting.WHITE)));
+        viewer.connection.send(new ClientboundSoundPacket(
+            go ? SoundEvents.NOTE_BLOCK_PLING : SoundEvents.NOTE_BLOCK_HARP,
+            SoundSource.MASTER, viewer.getX(), viewer.getY(), viewer.getZ(),
+            .8f, go ? 1.6f : second<=3 ? .85f+(3-second)*.2f : .65f,
+            viewer.getRandom().nextLong()));
     }
 
     public static Component endRunHint() {

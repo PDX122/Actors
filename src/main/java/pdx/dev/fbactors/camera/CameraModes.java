@@ -10,13 +10,13 @@ public final class CameraModes {
     public static BoatCam.Settings tuning(int mode) {
         return pdx.dev.fbactors.settings.FbSettings.settings().boatCamMode==mode?BoatCam.snapshot():CameraModesCatalog.recommended(mode);
     }
-    public static void select(int mode) { apply(CameraModesCatalog.recommended(mode)); }
+    public static void select(int mode) { apply(CameraModesCatalog.recommended(mode)); CameraModesPreview.restart(); }
     public static void apply(BoatCam.Settings settings) {
         var s=pdx.dev.fbactors.settings.FbSettings.settings();
         s.boatCamMode=settings.mode(); s.boatCamDistance=(float)settings.distance(); s.boatCamHeight=(float)settings.height();
         s.boatCamSide=(float)settings.side(); s.boatCamLookAhead=(float)settings.ahead(); s.boatCamOrbitSpeed=(float)settings.orbit();
         s.boatCamBank=(float)settings.bank(); s.boatCamFov=(float)settings.fov(); s.boatCamSpeedFov=(float)settings.speedFov();
-        s.boatCamSmoothing=(float)settings.lag(); s.boatCamCollision=settings.collision(); BoatCam.reset();
+        s.boatCamSmoothing=(float)settings.lag(); s.boatCamCollision=settings.collision(); BoatCam.restartShot();
     }
     public static boolean attach(String id,Actor actor) {
         if(actor==null || actor.take.locked) { notice="Unlock the actor track before adding a camera mode."; return false; }

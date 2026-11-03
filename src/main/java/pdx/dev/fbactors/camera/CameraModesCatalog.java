@@ -18,7 +18,25 @@ public final class CameraModesCatalog {
         new Entry("crane", "Crane reveal", "Rise and widen over the first eight seconds of the clip.", 10),
         new Entry("push_in", "Push in", "Ease toward the subject over the first eight seconds of the clip.", 11),
         new Entry("pull_back", "Pull back", "Ease away and reveal the surroundings over eight seconds.", 12),
-        new Entry("dolly_zoom", "Dolly zoom", "Move back while narrowing the lens to hold the subject's apparent size.", 13));
+        new Entry("dolly_zoom", "Dolly zoom", "Move back while narrowing the lens to hold the subject's apparent size.", 13),
+        new Entry("ice_chase", "Ice chase", "Follow travel rather than boat yaw through high-speed ice drifts.", 14),
+        new Entry("ice_lead", "Ice lead", "Lead the boat down the track and look back through the corner.", 15),
+        new Entry("ice_trackside", "Ice trackside", "Low lateral tracking keeps the hull and slide visible.", 16),
+        new Entry("horse_chase", "Mounted chase", "Frame horse and rider together from a raised rear quarter.", 17),
+        new Entry("horse_profile", "Gallop profile", "Track alongside a horse with room for the full stride.", 18),
+        new Entry("rider_shoulder", "Rider shoulder", "Look past the rider toward the trail at mounted eye level.", 19),
+        new Entry("route_scout", "Route scout", "A high forward-looking chase shot for routes and racing lines.", 20),
+        new Entry("arc_reveal", "Arc reveal", "Sweep from the rear quarter to the front over eight seconds.", 21),
+        new Entry("rise_overhead", "Rise to overhead", "Lift from a rear view into a top-down composition over eight seconds.", 22),
+        new Entry("hero_orbit", "Hero orbit", "Circle while rising to reveal the subject and its surroundings.", 23));
+    public static final List<String> GROUPS = List.of("All shots", "Tracking", "Ice boating", "Horse riding", "Cinematic");
+    public static String group(int mode) {
+        if(mode>=14 && mode<=16) return "Ice boating";
+        if(mode>=17 && mode<=19) return "Horse riding";
+        return mode>=8 && mode!=20?"Cinematic":"Tracking";
+    }
+    public static boolean timed(int mode) { return mode==2 || mode>=10 && mode<=13 || mode>=21; }
+    public static boolean usesTravel(int mode) { return mode==6 || mode>=14 && mode<=18 || mode==20; }
     private CameraModesCatalog() {}
     public static Entry find(String id) { return ENTRIES.stream().filter(e -> e.id().equals(id)).findFirst().orElse(null); }
     public static String[] names() { return ENTRIES.stream().map(Entry::name).toArray(String[]::new); }
@@ -37,6 +55,16 @@ public final class CameraModesCatalog {
             case 11 -> new BoatCam.Settings(11,4,1.65,0,0,0,0,50,0,0,true);
             case 12 -> new BoatCam.Settings(12,5,2.2,0,0,0,0,55,0,0,true);
             case 13 -> new BoatCam.Settings(13,5,1.65,0,0,0,0,55,0,0,true);
+            case 14 -> new BoatCam.Settings(14,7,2.2,0,4,0,3,72,5,.1,true);
+            case 15 -> new BoatCam.Settings(15,8,1.4,0,2,0,0,65,3,.1,true);
+            case 16 -> new BoatCam.Settings(16,5,.65,0,2,0,0,65,2,.08,true);
+            case 17 -> new BoatCam.Settings(17,6,3,1.8,1,0,1,58,2,.16,true);
+            case 18 -> new BoatCam.Settings(18,6,2,0,1,0,0,55,1,.12,true);
+            case 19 -> new BoatCam.Settings(19,2,2.6,.75,3,0,0,65,0,.1,true);
+            case 20 -> new BoatCam.Settings(20,8,8,0,6,0,0,65,2,.15,true);
+            case 21 -> new BoatCam.Settings(21,5,2.2,0,0,18,0,55,0,0,true);
+            case 22 -> new BoatCam.Settings(22,6,7,0,0,0,0,60,0,0,true);
+            case 23 -> new BoatCam.Settings(23,6,3.5,0,0,18,0,55,0,0,true);
             default -> new BoatCam.Settings(0,4,1.8,3,2,18,2,60,4,.16,true);
         };
     }

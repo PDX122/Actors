@@ -76,7 +76,6 @@ public final class ReleaseVisualChecks {
                     if(ReleaseExportChecks.actor()==null) throw new IllegalStateException("No skin preview fixture");
                     SkinPicker.open(ReleaseExportChecks.actor());
                 }));
-                screens.add(new Screen("actor-morph-picker", () -> MorphPicker.open(ReleaseExportChecks.actor())));
                 screens.add(new Screen("subtitles", SubtitleMenu::open));
                 for(String tab:List.of("scene","edit","looks")) screens.add(new Screen("studio-"+tab,() -> {}));
                 screens.add(new Screen("shortcut-help",() -> set(pdx.dev.fbactors.input.Hotkey.class,"helpOpen",true)));
@@ -253,7 +252,7 @@ public final class ReleaseVisualChecks {
     }
     private static void closeWindows() {
         set(pdx.dev.fbactors.input.Hotkey.class,"helpOpen",false);
-        SkinPicker.close(); MorphPicker.close();
+        SkinPicker.close();
         for (Class<?> type : WINDOWS) {
             try { var field = type.getDeclaredField("OPEN"); field.setAccessible(true); ((ImBoolean)field.get(null)).set(false); }
             catch (ReflectiveOperationException e) { throw new IllegalStateException(e); }

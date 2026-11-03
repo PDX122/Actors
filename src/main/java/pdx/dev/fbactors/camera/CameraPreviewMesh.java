@@ -9,9 +9,12 @@ public final class CameraPreviewMesh {
     private static final double UNIT=1.8/32;
     private CameraPreviewMesh() {}
     public static List<Face> player(long skin,boolean slim,Point origin,double yaw,double seconds) {
+        return player(skin,slim,origin,yaw,seconds,false);
+    }
+    public static List<Face> player(long skin,boolean slim,Point origin,double yaw,double seconds,boolean seated) {
         var faces=new ArrayList<Face>();
 
-        double phase=gaitPhase(seconds),swing=Math.sin(phase)*.65;
+        double phase=gaitPhase(seconds),swing=seated?0:Math.sin(phase)*.65;
         double lift=(12*Math.cos(swing)+2*Math.abs(Math.sin(swing))-12)*UNIT;
         origin=new Point(origin.x(),origin.y()+lift,origin.z());
         cube(faces,skin,origin,yaw,0,24,0,8,8,8,0,0,0,24,0,0);
@@ -19,16 +22,34 @@ public final class CameraPreviewMesh {
         double arm=slim?3:4,center=4+arm/2;
         cube(faces,skin,origin,yaw,-center,12,0,arm,12,4,40,16,-center,24,swing,0);
         cube(faces,skin,origin,yaw,center,12,0,arm,12,4,32,48,center,24,-swing,0);
-        cube(faces,skin,origin,yaw,-2,0,0,4,12,4,0,16,-2,12,-swing,0);
-        cube(faces,skin,origin,yaw,2,0,0,4,12,4,16,48,2,12,swing,0);
+        cube(faces,skin,origin,yaw,-2,0,0,4,12,4,0,16,-2,12,seated?-1.2:-swing,0);
+        cube(faces,skin,origin,yaw,2,0,0,4,12,4,16,48,2,12,seated?-1.2:swing,0);
         cube(faces,skin,origin,yaw,0,24,0,8,8,8,32,0,0,24,0,.5);
         cube(faces,skin,origin,yaw,0,12,0,8,12,4,16,32,0,12,0,.25);
         cube(faces,skin,origin,yaw,-center,12,0,arm,12,4,40,32,-center,24,swing,.25);
         cube(faces,skin,origin,yaw,center,12,0,arm,12,4,48,48,center,24,-swing,.25);
-        cube(faces,skin,origin,yaw,-2,0,0,4,12,4,0,32,-2,12,-swing,.25);
-        cube(faces,skin,origin,yaw,2,0,0,4,12,4,0,48,2,12,swing,.25);
+        cube(faces,skin,origin,yaw,-2,0,0,4,12,4,0,32,-2,12,seated?-1.2:-swing,.25);
+        cube(faces,skin,origin,yaw,2,0,0,4,12,4,0,48,2,12,seated?-1.2:swing,.25);
 
         return faces.stream().map(f -> new Face(f.texture(),f.vertices(),lighting(f.vertices()))).toList();
+    }
+    public static List<Face> mount(long texture,Point origin,double yaw,double seconds,boolean horse) {
+        var out=new ArrayList<Face>();
+        if(horse) {
+            cube(out,texture,origin,yaw,0,15,0,12,12,24,0,0,0,15,0,0);
+            cube(out,texture,origin,yaw,0,23,10,7,13,8,0,0,0,23,-.35,0);
+            cube(out,texture,origin,yaw,0,30,15,7,7,12,0,0,0,30,0,0);
+            for(int side:new int[]{-1,1}) for(int end:new int[]{-1,1}) {
+                double swing=Math.sin(seconds*9+side*end*Math.PI/2)*.65;
+                cube(out,texture,origin,yaw,side*4,0,end*8,4,16,4,0,0,side*4,16,swing,0);
+            }
+            cube(out,texture,origin,yaw,0,22,-13,3,12,3,0,0,0,22,-.4,0);
+        } else {
+            cube(out,texture,origin,yaw,0,1,0,22,3,34,0,0,0,0,0,0);
+            for(int side:new int[]{-1,1}) cube(out,texture,origin,yaw,side*11,3,0,3,6,34,0,0,0,0,0,0);
+            for(int end:new int[]{-1,1}) cube(out,texture,origin,yaw,0,3,end*16,22,6,3,0,0,0,0,0,0);
+        }
+        return out.stream().map(f -> new Face(f.texture(),f.vertices(),lighting(f.vertices()))).toList();
     }
     public static double gaitPhase(double seconds) {
 

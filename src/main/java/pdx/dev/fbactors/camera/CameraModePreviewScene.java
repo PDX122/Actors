@@ -5,16 +5,28 @@ public final class CameraModePreviewScene {
     public record Pixel(float x,float y,double depth) {}
     private CameraModePreviewScene() {}
     public static Point subject(double seconds) { return new Point(Math.sin(seconds*.55)*4,0,seconds*2); }
+    public static boolean ice(int mode) { return mode>=14 && mode<=16; }
+    public static boolean horse(int mode) { return mode>=17 && mode<=19; }
+    public static Point subject(double seconds,int mode) {
+        var p=subject(seconds);
+        return ice(mode)?new Point(p.x()*2,0,p.z()*4):horse(mode)?new Point(p.x()*1.3,0,p.z()*1.8):p;
+    }
+    public static double heading(double seconds,int mode) {
+        double scaleX=ice(mode)?2:horse(mode)?1.3:1,scaleZ=ice(mode)?4:horse(mode)?1.8:1;
+        return Math.toDegrees(Math.atan2(-Math.cos(seconds*.55)*.11*scaleX,.1*scaleZ));
+    }
+    public static double eye(int mode) { return ice(mode)?1.15:horse(mode)?2.55:1.62; }
     public static Point partner(double seconds) { var p=subject(seconds); return new Point(p.x()+3+Math.sin(seconds*.65)*1.5,0,p.z()+2); }
     public static double heading(double seconds) { return Math.toDegrees(Math.atan2(-Math.cos(seconds*.55)*.11,.1)); }
     public static BoatCameraModel.Shot camera(BoatCam.Settings tuning,double seconds,double aspect) {
-        var p=subject(seconds); double vx=Math.cos(seconds*.55)*.11,vz=.1;
-        double yaw=heading(seconds);
+        var p=subject(seconds,tuning.mode());
+        double vx=Math.cos(seconds*.55)*.11*(ice(tuning.mode())?2:horse(tuning.mode())?1.3:1),vz=.1*(ice(tuning.mode())?4:horse(tuning.mode())?1.8:1);
+        double yaw=heading(seconds,tuning.mode());
         if(tuning.mode()==7) {
             var second=partner(seconds);
             return BoatCameraModel.battle(p.x(),CameraModeModel.aimHeight(1.62)-.6,p.z(),second.x(),CameraModeModel.aimHeight(1.62)-.6,second.z(),Math.toDegrees(Math.atan2(-vx,vz)),tuning.distance(),tuning.height(),tuning.fov(),aspect);
         }
-        return CameraModeModel.shot(p.x(),0,p.z(),yaw,vx,vz,Math.sin(seconds*.55)*2,seconds,1.62,tuning);
+        return CameraModeModel.shot(p.x(),0,p.z(),yaw,vx,vz,Math.sin(seconds*.55)*2,seconds,eye(tuning.mode()),tuning);
     }
     public static final class View {
         private final BoatCameraModel.Shot camera;

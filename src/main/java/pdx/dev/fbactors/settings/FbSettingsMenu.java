@@ -223,7 +223,7 @@ public final class FbSettingsMenu {
             settings.countdownSeconds = Math.max(1, seconds[0]);
         }
         if (ImGui.isItemHovered()) {
-            ImGui.setItemTooltip("3-2-1 delay before recording starts, used by /start with no argument");
+            ImGui.setItemTooltip("Countdown with a colored number and sound each second. Used by /start with no argument.");
         }
     }
 

@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import pdx.dev.fbactors.FlashbackActors;
 import pdx.dev.fbactors.actor.Actor;
 import pdx.dev.fbactors.actor.ActorSkins;
-import pdx.dev.fbactors.ui.MorphPicker;
+import pdx.dev.fbactors.ui.MorphLibrary;
 import pdx.dev.fbactors.ui.SkinPicker;
 
 @Mixin(value = SelectedEntityPopup.class, remap = false)
@@ -64,9 +64,9 @@ public class MixinSelectedEntityPopup {
         }
         if (pdx.dev.fbactors.settings.FbSettings.morphEnabled()) {
             ImGui.sameLine();
-            if (ImGui.button("Change morph...##ActorMorphOpen")) {
+            if (ImGui.button("Morph library...##ActorMorphOpen")) {
                 ImGui.closeCurrentPopup();
-                MorphPicker.open(actor);
+                MorphLibrary.open(null, actor);
             }
         }
 

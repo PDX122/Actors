@@ -4,6 +4,8 @@ Open **Actors > Morph library** to browse bodies as draggable cards. Search by n
 
 ![Cat selected in the Morph library with the Sitting pose](assets/screenshots/morph-cat-sitting.png)
 
+In 0.11.2, Morph library replaces the legacy Choose morph window. The actor Appearance menu no longer includes Choose morph, Morph timeline or Reset morph. Select the Player card and apply it to restore the recorded player body.
+
 ## Apply a body or make a clip
 
 Choose a default body/pose for an actor, or drag a card onto an actor or its **Morph** lane to make a timed clip. Cards carry the selected body and pose together. Move or trim the resulting clip on the timeline.
@@ -35,4 +37,4 @@ Recorded playback, scrubbing and export resolve the saved selection at the repla
 
 ## Version differences
 
-The library omits built-in bodies unavailable in the running Minecraft version. A modded body also needs its source mod and renderer installed. Reopen the picker after a preview failure to retry it, and check [error recovery](troubleshooting.md).
+The library omits built-in bodies unavailable in the running Minecraft version. A modded body also needs its source mod and renderer installed. Reopen the library after a preview failure to retry it, and check [error recovery](troubleshooting.md).

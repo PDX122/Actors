@@ -1,11 +1,14 @@
 # Custom mobs and animations
 
-Open an actor's **Morphs** picker and press **Import model**. Choose a model
-name, a Blockbench/GeckoLib `.geo.json`, an optional animation JSON and its PNG
-texture. The files are copied into `flashback/fbactors/morphs/models/`. Select
-the imported entry under **Custom**, inspect the preview, then Apply.
+In 0.11.2, models already installed in `flashback/fbactors/morphs/models/`
+appear under **Custom** in **Actors > Morph library**. Select a body to preview,
+apply it to an actor, or drag it into the Morph lane.
 
-This initial importer supports:
+The legacy Morphs picker, its import dialog and named-animation controls have
+been removed. Existing model files and saved animation selections still load.
+
+The custom model format supports:
+
 
 - A single Bedrock/GeckoLib geometry with Box UV, nested bones, cube pivots,
   cube rotations, inflate and mirror.
@@ -22,12 +25,10 @@ error instead of silently substituting a vanilla body. GeckoLib itself is not
 required for these imported assets: the addon converts their bones into
 Minecraft model parts and uses the native entity renderer.
 
-The preview's pose list contains the imported animation names. The playback
-selector below Apply lets you choose a named animation for the actor or use
-**Auto: idle / walk**. Auto chooses clips whose names contain `idle` and `walk`;
-otherwise it uses the first clip. Named playback selections persist per take.
-Animation time comes from the replay tick, so pausing and scrubbing produce
-the same pose at the same time. Preview playback has its own clock.
+Automatic playback chooses clips whose names contain `idle` and `walk`;
+otherwise it uses the first clip. Previously saved named-animation selections
+persist per take. Animation time comes from the replay tick, so pausing and
+scrubbing produce the same pose at the same time.
 
 Installed mods' living entities appear under **Modded** after entering a level
 when they can be created and have a renderer. Their source mod must be

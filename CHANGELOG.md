@@ -4,6 +4,28 @@ Take-format versions are the compatibility contract: a take file records the
 version that wrote it, newer builds read older files (migrating where noted),
 and older builds refuse newer files at the version check.
 
+## 0.11.2 (release candidate)
+
+- Improved the /start countdown with bold colored numbers, rising final-three
+  tones and a green ACTION! cue. Every second of the configured delay plays a
+  sound directly to the recording player. Removed the duplicate start cue.
+
+- Expanded Camera modes from 14 to 24 shots, adding Ice chase, Ice lead,
+  Ice trackside, Mounted chase, Gallop profile, Rider shoulder, Route scout,
+  Arc reveal, Rise to overhead and Hero orbit. Existing saved mode IDs remain
+  unchanged. Travel-based shots follow slides and mounted framing uses rider height.
+- Added shot groups, search, wider previews and scenario previews with boats on
+  ice and horses on trails. Small cards reduce geometry detail to keep the larger
+  library within ImGui's vertex limit. Controls now match each shot's behavior.
+- Orbit and cinematic moves now start from their camera clip's local clock.
+  Live follow starts its motion clock when activated, and selecting a shot or
+  reopening the library restarts the inspector preview.
+
+- Removed the legacy Choose morph window and its Appearance menu entries
+  (Choose morph, Morph timeline and Reset morph). Use Morph library to apply
+  bodies and poses, restore Player, or add clips. Timed clips remain available
+  in the Morph lane with drag, trim, mute, duplicate, delete and undo support.
+
 ## 0.11.1 (in development)
 
 - Changed 26.3 Vulkan morph previews to render after the ImGui draw is submitted.

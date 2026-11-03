@@ -92,21 +92,22 @@ def browser_check():
             page.goto(url+'custom-shaders/',wait_until='networkidle')
             page.locator('.copy-code').first.click();expect(page.locator('.copy-code').first).to_have_text('Copied')
             page.goto(url+'downloads/',wait_until='networkidle')
-            expect(page.locator('.download-build')).to_have_count(9)
+            catalog=json.loads((BASE/'downloads/catalog.json').read_text())
+            expect(page.locator('.download-build')).to_have_count(sum(len(release['builds']) for release in catalog['releases']))
             page.screenshot(path=str(evidence/'downloads-desktop.png'),full_page=True)
             page.locator('#minecraft-download-version').select_option('1.21.7')
-            expect(page.locator('.download-build:visible')).to_have_count(1)
-            expect(page.locator('.download-build:visible')).to_contain_text('1.21.6, 1.21.7, 1.21.8')
+            expect(page.locator('.download-build:visible')).to_have_count(len(catalog['releases']))
+            expect(page.locator('.download-build:visible').first).to_contain_text('1.21.6, 1.21.7, 1.21.8')
             page.locator('#minecraft-download-version').select_option('26.3')
-            uploaded=page.locator('.download-release [data-upload-time]')
+            uploaded=page.locator('.download-release [data-upload-time]').first
             assert uploaded.get_attribute('datetime').endswith('Z')
             assert uploaded.inner_text() and 'Invalid' not in uploaded.inner_text()
-            row=page.locator('.download-build:visible')
+            row=page.locator('.download-build:visible').first
             row.locator('summary').click();row.locator('[data-copy-sha]').click()
             expect(page.locator('#checksum-status')).to_have_text('SHA-256 copied to clipboard.')
             with page.expect_download() as download:
                 row.locator('.download-button').click()
-            assert download.value.suggested_filename=='flashback-actors-26.3-0.11.1.jar'
+            assert download.value.suggested_filename==next(build['filename'] for build in catalog['releases'][0]['builds'] if build['family']=='26.3')
             received=evidence/download.value.suggested_filename
             download.value.save_as(received)
             with received.open('rb') as stream:

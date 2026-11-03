@@ -270,15 +270,6 @@ public final class ActorTrack {
                 if (ImGui.menuItem("Track color...")) openColour = true;
                 if (ImGui.menuItem("Choose skin...")) SkinPicker.open(actor);
                 if (ImGui.menuItem("Reset skin")) ActorSkinBridge.clear(actor);
-                if (pdx.dev.fbactors.settings.FbSettings.morphEnabled()) {
-                    ImGui.separator();
-                    if (ImGui.menuItem("Choose morph...")) MorphPicker.open(actor);
-                    if (ImGui.menuItem("Morph timeline...")) MorphPicker.openTimeline(actor,null);
-                    if (ImGui.menuItem("Reset morph")) {
-                        pdx.dev.fbactors.morph.Morph.store().clear(actor.take.id);
-                        pdx.dev.fbactors.morph.Morph.save();
-                    }
-                }
                 ImGui.endMenu();
             }
             if (ImGui.beginMenu("Timing", !actor.take.locked)) {

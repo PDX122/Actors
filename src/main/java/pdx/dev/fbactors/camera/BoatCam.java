@@ -16,7 +16,7 @@ public final class BoatCam {
     private static Object session;
     private static Object renderExport;
     private static BoatCameraModel.Shot shot, saved, rendered;
-    private static double lastTick = Double.NaN;
+    private static double lastTick = Double.NaN, startedTick;
     private static boolean savedFov, savedRoll;
     private static float savedFovAmount, savedRollAmount;
     private static String status = "Choose a player or actor.";
@@ -43,6 +43,7 @@ public final class BoatCam {
         }
         session = Flashback.getReplayServer();
         enabled = true;
+        startedTick = BoatSubjects.clock();
         reset();
     }
     public static void stop() {
@@ -65,6 +66,7 @@ public final class BoatCam {
         }
         reset();
     }
+    public static void restartShot() { startedTick=BoatSubjects.clock(); reset(); }
     public static void reset() { shot = null; rendered = null; lastTick = Double.NaN; }
 
     public static BoatCameraModel.Shot renderedShot() {
@@ -139,7 +141,7 @@ public final class BoatCam {
         var b = BoatSubjects.client(clip == null ? state.rival : clip.rival,tick);
         if (a == null) { status = "Waiting for the subject at this playhead."; reset(); return; }
         var settings = clip == null ? snapshot() : clip.settings;
-        double shotTick=clip!=null && settings.mode()>=8?tick-clip.start:tick;
+        double shotTick=CameraModesCatalog.timed(settings.mode())?tick-(clip==null?startedTick:clip.start):tick;
         var next = desired(a,b,settings,shotTick,aspect());
         if (next == null) { status = "Two subjects must be present in the same dimension."; reset(); return; }
         if (!next.valid()) { status = "Waiting for valid subject motion."; reset(); return; }

@@ -14,6 +14,8 @@ import java.util.UUID;
 public final class BoatMenu {
     private static final ImBoolean OPEN = new ImBoolean(false);
     private static int page, from, to;
+    private static String shotGroup="All shots";
+    private static final imgui.moulberry90.type.ImString SEARCH=new imgui.moulberry90.type.ImString(128);
     private static final String[] PAGES = {"Modes", "Timeline", "Boat handling"};
     private BoatMenu() {}
     public static void open(int section) { page=Math.max(0,Math.min(2,section)); CameraModesPreview.reopen(); OPEN.set(true); useRange(); }
@@ -26,7 +28,7 @@ public final class BoatMenu {
         if (!OPEN.get()) return;
         var viewport=ImGui.getMainViewport();
         float maxWidth=Math.max(1,viewport.getWorkSizeX()-24),maxHeight=Math.max(1,viewport.getWorkSizeY()-24);
-        ImGui.setNextWindowSize(Math.min(760,maxWidth),Math.min(640,maxHeight),ImGuiCond.Appearing);
+        ImGui.setNextWindowSize(Math.min(960,maxWidth),Math.min(720,maxHeight),ImGuiCond.Appearing);
         ImGui.setNextWindowSizeConstraints(Math.min(360,maxWidth),Math.min(340,maxHeight),maxWidth,maxHeight);
         ImGui.setNextWindowBgAlpha(1); SkinPickerChrome.push();
         ImGui.pushStyleVar(ImGuiStyleVar.WindowPadding,12,10);
@@ -107,20 +109,35 @@ public final class BoatMenu {
         boolean library=ImGui.beginChild("##CameraModeLibrary",libraryWidth,beside?height:Math.max(110,height*.45f),false);
         try {
             if(library) {
-                ImGui.textDisabled("DRAG ONTO AN ACTOR");
+                ImGui.textUnformatted("Shot library");
+                ImGui.setNextItemWidth(-1);
+                if(ImGui.beginCombo("##CameraShotGroup",shotGroup)) {
+                    try { for(String group:CameraModesCatalog.GROUPS) if(ImGui.selectable(group,shotGroup.equals(group))) shotGroup=group; }
+                    finally { ImGui.endCombo(); }
+                }
+                ImGui.setNextItemWidth(-1);
+                ImGui.inputTextWithHint("##CameraShotSearch","Search shots...",SEARCH);
+                ImGui.textDisabled("Drag a shot onto an actor");
+                int matches=0;
                 int columns=libraryWidth>=190?2:1,index=0;
                 float tile=Math.max(1,(ImGui.getContentRegionAvailX()-(columns-1)*6)/columns);
                 for(var entry:CameraModesCatalog.ENTRIES) {
+                    if(!shotGroup.equals("All shots") && !shotGroup.equals(CameraModesCatalog.group(entry.mode()))) continue;
+                    String query=SEARCH.get().trim().toLowerCase(java.util.Locale.ROOT);
+                    if(!query.isEmpty() && !(entry.name()+" "+entry.description()+" "+CameraModesCatalog.group(entry.mode())).toLowerCase(java.util.Locale.ROOT).contains(query)) continue;
+                    matches++;
                     if(index++%columns!=0) ImGui.sameLine();
                     ImGui.pushID(entry.id()); ImGui.beginGroup();
                     try {
                         var tuning=CameraModes.tuning(entry.mode());
-                        if(CameraModesPreview.draw("##ModeTile",tuning,tile,tile*.62f,false)) { CameraModes.select(entry.mode()); }
+                        if(CameraModesPreview.draw("##ModeTile",tuning,tile,tile*9/16,false)) { CameraModes.select(entry.mode()); }
+                        if(s.boatCamMode==entry.mode()) ImGui.getWindowDrawList().addRect(ImGui.getItemRectMinX(),ImGui.getItemRectMinY(),ImGui.getItemRectMaxX(),ImGui.getItemRectMaxY(),0xffb7d567,6);
                         dragSource(entry);
                         if(SkinPickerChrome.button(entry.name(),s.boatCamMode==entry.mode(),tile)) { CameraModes.select(entry.mode()); }
                         dragSource(entry); ImGui.setItemTooltip(entry.description());
                     } finally { ImGui.endGroup(); ImGui.popID(); }
                 }
+                if(matches==0) ImGui.textWrapped("No shots match. Try another group or search.");
             }
         } finally { ImGui.endChild(); }
         if(beside) ImGui.sameLine();
@@ -128,10 +145,12 @@ public final class BoatMenu {
         try {
             if(inspector) {
                 var entry=CameraModesCatalog.ENTRIES.get(Math.max(0,Math.min(CameraModesCatalog.ENTRIES.size()-1,s.boatCamMode)));
+                ImGui.textDisabled(CameraModesCatalog.group(entry.mode()).toUpperCase(java.util.Locale.ROOT));
                 ImGui.textUnformatted(entry.name());
-                CameraModesPreview.draw("##CameraModePreview",BoatCam.snapshot(),ImGui.getContentRegionAvailX(),140,true);
+                float previewWidth=ImGui.getContentRegionAvailX();
+                CameraModesPreview.draw("##CameraModePreview",BoatCam.snapshot(),previewWidth,Math.max(140,previewWidth*9/16),true);
                 dragSource(entry);
-                ImGui.textDisabled("Player and terrain preview");
+                ImGui.textDisabled(CameraModePreviewScene.ice(entry.mode())?"Ice circuit / boat and rider":CameraModePreviewScene.horse(entry.mode())?"Trail / horse and rider":"Terrain / walking subject");
                 ImGui.textWrapped(entry.description());
                 section("Subjects");
                 targetPicker("Subject",false);
@@ -167,16 +186,17 @@ public final class BoatMenu {
             s.boatCamHeight=slider("Height",s.boatCamHeight,.3f,12);
         }
         s.boatCamFov=slider("Field of view",s.boatCamFov,30,110);
-        if(s.boatCamMode==1 || s.boatCamMode==8) s.boatCamSide=slider("Side offset",s.boatCamSide,-12,12);
-        if(s.boatCamMode>=10) ImGui.textWrapped("Motion eases over the first 8 seconds of the clip, then holds. Distance and height set the framing range.");
+        if(s.boatCamMode==1 || s.boatCamMode==8 || s.boatCamMode==16 || s.boatCamMode>=17 && s.boatCamMode<=19) s.boatCamSide=slider("Side offset",s.boatCamSide,-12,12);
+        if((s.boatCamMode>=10 && s.boatCamMode<=13) || s.boatCamMode==21 || s.boatCamMode==22) ImGui.textWrapped("Motion eases over the first 8 seconds of the clip, then holds. Distance and height set the framing range.");
+        if(s.boatCamMode==23) ImGui.textWrapped("Rises over eight seconds, then keeps orbiting. Orbit speed controls direction and pace.");
         section("Motion");
         s.boatCamSmoothing=slider("Smoothing",s.boatCamSmoothing,0,1);
-        if(s.boatCamMode==2) s.boatCamOrbitSpeed=slider("Orbit speed",s.boatCamOrbitSpeed,-90,90);
-        if(s.boatCamMode<7 && s.boatCamMode!=3 && s.boatCamMode!=5 && ImGui.collapsingHeader("Advanced motion")) {
-            if(s.boatCamMode==0 || s.boatCamMode==1 || s.boatCamMode==6)
+        if(s.boatCamMode==2 || s.boatCamMode==23) s.boatCamOrbitSpeed=slider("Orbit speed",s.boatCamOrbitSpeed,-90,90);
+        if((s.boatCamMode<7 && s.boatCamMode!=3 && s.boatCamMode!=5 || s.boatCamMode>=14 && s.boatCamMode<=20) && ImGui.collapsingHeader("Advanced motion")) {
+            if(s.boatCamMode==0 || s.boatCamMode==1 || s.boatCamMode==6 || s.boatCamMode==14 || s.boatCamMode==17 || s.boatCamMode==19 || s.boatCamMode==20)
                 s.boatCamLookAhead=slider("Look ahead",s.boatCamLookAhead,0,12);
-            s.boatCamSpeedFov=slider("Speed zoom",s.boatCamSpeedFov,0,20);
-            if(s.boatCamMode!=2) s.boatCamBank=slider("Turn banking",s.boatCamBank,0,30);
+            if(s.boatCamMode!=19) s.boatCamSpeedFov=slider("Speed zoom",s.boatCamSpeedFov,0,20);
+            if(s.boatCamMode==0 || s.boatCamMode==1 || s.boatCamMode==4 || s.boatCamMode==6 || s.boatCamMode==14 || s.boatCamMode==17) s.boatCamBank=slider("Turn banking",s.boatCamBank,0,30);
         }
         section("Obstacles");
         if(ImGui.checkbox("Avoid walls and ceilings",s.boatCamCollision)) { s.boatCamCollision=!s.boatCamCollision; BoatCam.reset(); }

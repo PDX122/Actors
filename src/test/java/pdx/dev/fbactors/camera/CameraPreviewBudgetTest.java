@@ -19,7 +19,7 @@ class CameraPreviewBudgetTest {
     @Test void actualScenesRespectTheirBudgetAcrossModesSizesAndCameraPlaneCrossings() {
         for(int mode=0;mode<CameraModesCatalog.ENTRIES.size();mode++) for(float width:new float[]{90,640}) for(double time:new double[]{0,3.5,11}) {
             int budget=CameraModesPreview.triangleBudget(0,width>=100);
-            var key=new CameraModesPreview.Key(CameraModesCatalog.recommended(mode),1,2,3,4,false,true,width,width*.62f);
+            var key=new CameraModesPreview.Key(CameraModesCatalog.recommended(mode),1,2,3,4,5,false,true,width,width*.62f);
             var triangles=CameraModesPreview.scene(key,time,budget);
             assertFalse(triangles.isEmpty(),"Empty scene for mode "+mode);
             assertTrue(triangles.size()<=budget,"Mode "+mode+" exceeded "+budget);

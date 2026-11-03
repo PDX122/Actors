@@ -39,4 +39,53 @@ class CinematicCameraTest {
         }
         assertTrue(shot(13,0).fov()>shot(13,8).fov());
     }
+    @Test void racingShotsTrackTravelEvenWhenTheBoatSlidesSideways() {
+        for(int mode:new int[]{14,15,16,17,18,20}) {
+            var settings=CameraModesCatalog.recommended(mode);
+            var a=CameraModeModel.shot(0,0,0,0,.8,.2,0,0,2.55,settings);
+            var b=CameraModeModel.shot(0,0,0,90,.8,.2,0,0,2.55,settings);
+            assertEquals(a,b,"Travel framing must not snap with body yaw: "+mode);
+            assertTrue(CameraModeModel.shot(0,0,0,90,0,0,0,0,2.55,settings).valid());
+        }
+        assertTrue(shot(14,0).z()<0);
+        assertTrue(shot(15,0).z()>0);
+        assertEquals(0,shot(16,0).z(),1e-9);
+        assertTrue(shot(16,0).y()<1);
+    }
+    @Test void mountedFramingUsesRiderHeightAndProfileShowsTheWholeMount() {
+        var settings=CameraModesCatalog.recommended(19);
+        var rider=CameraModeModel.shot(0,0,0,0,0,.2,0,0,2.55,settings);
+        var walker=CameraModeModel.shot(0,0,0,0,0,.2,0,0,1.62,settings);
+        assertEquals(.93,rider.y()-walker.y(),1e-9);
+        assertTrue(Math.abs(shot(18,0).x())>=6);
+        assertTrue(shot(17,0).y()>2.5);
+    }
+    @Test void newRevealsReachTheirEndAndOrbitKeepsMovingAfterItsRise() {
+        for(int mode:new int[]{21,22}) {
+            assertNotEquals(shot(mode,0),shot(mode,8));
+            assertEquals(shot(mode,8),shot(mode,80));
+            assertEquals(shot(mode,0),shot(mode,-10));
+        }
+        assertEquals(90,shot(22,8).pitch(),1e-6);
+        assertTrue(shot(21,0).x()<0 && shot(21,8).x()>0);
+        assertNotEquals(shot(23,8),shot(23,12));
+        assertEquals(shot(23,8).y(),shot(23,12).y());
+        for(var entry:CameraModesCatalog.ENTRIES) for(double speed:new double[]{0,.001,.3,4}) for(double time:new double[]{0,4,8,90}) {
+            var frame=CameraModeModel.shot(0,0,0,179,speed,-speed,120,time,2.55,CameraModesCatalog.recommended(entry.mode()));
+            assertTrue(frame.valid(),entry.id());
+            assertTrue(frame.fov()>=30 && frame.fov()<=110);
+        }
+    }
+    @Test void sideControlsRespondBelowTheBaseDistanceAndCanCrossToTheOtherSide() {
+        for(int mode:new int[]{1,16,18}) {
+            var base=CameraModesCatalog.recommended(mode);
+            double previous=Double.NEGATIVE_INFINITY;
+            for(double side:new double[]{-12,-4,0,1,4,12}) {
+                var settings=new BoatCam.Settings(mode,base.distance(),base.height(),side,base.ahead(),base.orbit(),base.bank(),base.fov(),base.speedFov(),base.lag(),base.collision());
+                var frame=CameraModeModel.shot(0,0,0,0,0,.1,0,0,1.62,settings);
+                assertTrue(frame.x()>previous,"Side offset must respond throughout its range");
+                previous=frame.x();
+            }
+        }
+    }
 }

@@ -30,7 +30,8 @@ class ChangelogNotesTest {
             String text=new String(input.readAllBytes(),StandardCharsets.UTF_8);
             assertFalse(text.contains("\u2014"));
             var notes=ChangelogNotes.parse(text);
-            assertEquals("0.11.1 (in development)",notes.getFirst().title());
+            assertEquals("0.11.2 (release candidate)",notes.getFirst().title());
+            assertTrue(notes.stream().anyMatch(release -> release.title().equals("0.11.1 (in development)")));
             assertTrue(text.contains("Random"));
             assertTrue(text.contains("Copy log"));
             assertTrue(text.contains("UI themes"));

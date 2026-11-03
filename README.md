@@ -9,6 +9,7 @@
 [![License MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 [![Requires Flashback](https://img.shields.io/badge/requires-Flashback-orange)](https://modrinth.com/mod/flashback)
 [![Docs](https://img.shields.io/badge/docs-site-blue)](https://pdx122.github.io/Actors/)
+[![Architecture diagram](https://gitdiagram.com/diagram-badge.svg)](https://gitdiagram.com/pdx122/actors?utm_source=readme&utm_medium=badge)
 
 Full guides live on the [docs site](https://pdx122.github.io/Actors/): install
 walkthrough, take recording, timeline editing, camera modes, morph poses, skins,

@@ -68,10 +68,10 @@
 	"fbactors.actor.setup_hint": "Actor setup: gear up, then /start",
 	"fbactors.actor.take_saved": "Take saved (%s)",
 	"fbactors.actor.cancelled": "Actor mode cancelled",
-	"fbactors.actor.countdown_go": "Action",
+	"fbactors.actor.countdown_go": "ACTION!",
 	"fbactors.actor.end_run_hint": "At end of footage, press Escape to finish",
 	"fbactors.actor.end_run_hint_alt": "Use Stop recording to end run",
-	"fbactors.actor.countdown_subtitle": "Take starts in",
+	"fbactors.actor.countdown_subtitle": "Get ready to record",
 
 	"fbactors.timer.elapsed": "Take %s",
 	"fbactors.timer.expired": "Time's up - take stopped",

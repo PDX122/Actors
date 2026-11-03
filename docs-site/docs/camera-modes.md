@@ -16,9 +16,13 @@ You can also select an actor and choose **Add to selected actor**. Both the acto
 track and the Camera modes track must be unlocked. Adding, moving, trimming,
 muting, duplicating and deleting clips support editor undo/redo.
 
-The preview uses a fully skinned Minecraft player with a travel-matched walking
-stride on grass and a stone path, using Minecraft textures and the actual camera
-math. Directional lighting, soft ground shadows and distance haze give the scene
+Use the group filter to browse **Tracking**, **Ice boating**, **Horse riding**
+and **Cinematic** shots, or search by name and purpose. The library has 24 modes.
+
+The preview uses a skinned player and the actual camera math. Ice shots show a
+seated rider in a simplified boat sliding along an ice circuit. Mounted shots
+show a seated rider on an animated block horse following a trail. Other shots
+show a walking player on grass and a stone path, using Minecraft textures. Directional lighting, soft ground shadows and distance haze give the scene
 depth, while adaptive texture subdivision reduces perspective stretching.
 It updates with the mode and camera tuning without moving the replay camera.
 It is a composition preview, not a live view of the replay world.
@@ -35,11 +39,26 @@ It is a composition preview, not a live view of the replay world.
 - **Two subjects** frames a pair. Choose a different **Second subject** before
   dropping this mode onto the first actor. Both must share a dimension.
 
-Adjust distance, height, FOV and smoothing under **Camera tuning**. **Fine tune**
+Adjust distance, height, FOV and smoothing under **Camera settings**. **Advanced motion**
 contains look ahead, side offset, orbit speed, speed zoom and banking. Obstacle
 avoidance can pull the camera closer, which may crop one of two subjects.
 **Live follow** can temporarily follow the chosen subject outside a camera clip.
 Closing the library does not stop an active live follow camera.
+
+## Ice boating and horse riding
+
+- **Ice chase** stays behind travel direction even when the hull rotates into a slide.
+- **Ice lead** looks back from ahead of the boat, keeping corners readable.
+- **Ice trackside** follows low beside the hull to emphasize lateral drift.
+- **Mounted chase** frames the horse and rider from a raised rear quarter.
+- **Gallop profile** shows the full mount and stride from the side.
+- **Rider shoulder** looks down the trail past the rider, adapting to mounted eye height.
+- **Route scout**, in Tracking, gives a high chase view with forward look ahead.
+
+Select the player or actor riding the vehicle. The camera samples the mount's
+position and the passenger's eye height. These are framing presets, so they can
+also follow subjects outside their suggested use. They do not spawn a mount or
+change vehicle handling. Travel-based shots fall back to body yaw at rest.
 
 ## Cinematic shots
 
@@ -51,10 +70,15 @@ Closing the library does not stop an active live follow camera.
 - **Dolly zoom** moves back while narrowing the field of view to keep the
   subject approximately the same size as the background perspective changes.
 
-Crane reveal, Push in, Pull back and Dolly zoom move over the first eight seconds
+- **Arc reveal** sweeps from the rear quarter toward the front.
+- **Rise to overhead** lifts into a top-down composition.
+- **Hero orbit** rises over eight seconds and keeps circling at the chosen orbit speed.
+
+Crane reveal, Push in, Pull back, Dolly zoom, Arc reveal and Rise to overhead move over the first eight seconds
 of each camera clip, then hold. Shorter clips use the opening part of the move.
 Distance and height set their framing range. Scrubbing and export use the same
-clip-local time. Live follow uses replay time. Obstacle avoidance can change the
+clip-local time, including Orbit and Hero orbit. Live follow starts its shot clock
+when following begins; reopening or selecting a shot restarts the inspector preview. Obstacle avoidance can change the
 composition, including the size compensation of a dolly zoom.
 
 ## Timeline and export
@@ -101,4 +125,4 @@ Elytra and attached firework simulation can be toggled under Playback.
 
 
 Each mode starts with its own recommended distance, height, FOV and smoothing.
-Use **Recommended framing** under Camera tuning to restore those settings.
+Use **Reset recommended framing** under Camera settings to restore those settings.

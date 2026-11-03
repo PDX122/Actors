@@ -24,7 +24,10 @@ class CameraModesTest {
         assertNotNull(CameraModeClips.create("pair",actor,UUID.randomUUID(),0,100,tuning()));
     }
     @Test void existingModeIndicesRemainStable() {
-        assertEquals(14,CameraModesCatalog.ENTRIES.size());
+        assertEquals(24,CameraModesCatalog.ENTRIES.size());
+        assertEquals("dolly_zoom",CameraModesCatalog.ENTRIES.get(13).id());
+        assertEquals("ice_chase",CameraModesCatalog.ENTRIES.get(14).id());
+        assertEquals("hero_orbit",CameraModesCatalog.ENTRIES.get(23).id());
         assertEquals("follow",CameraModesCatalog.ENTRIES.get(0).id());
         assertEquals("pair",CameraModesCatalog.ENTRIES.get(7).id());
         for(int mode=0;mode<CameraModesCatalog.ENTRIES.size();mode++) assertEquals(mode,CameraModesCatalog.ENTRIES.get(mode).mode());

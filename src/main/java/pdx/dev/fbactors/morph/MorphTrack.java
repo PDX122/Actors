@@ -2,7 +2,7 @@ package pdx.dev.fbactors.morph;
 
 import imgui.moulberry90.ImGui;
 import pdx.dev.fbactors.actor.Actor;
-import pdx.dev.fbactors.ui.MorphPicker;
+import pdx.dev.fbactors.ui.MorphLibrary;
 import pdx.dev.fbactors.ui.TimelineGeometry;
 import java.util.UUID;
 
@@ -23,7 +23,7 @@ public final class MorphTrack {
             draw.pushClipRect(g.x(),top,g.panelRight(),bottom,true);
             draw.addText(g.x()+22,y,0xffd9a5dc,"Morph"); draw.addText(g.panelRight()-16,y,0xffd9a5dc,"+"); draw.popClipRect();
             if(ImGui.isWindowHovered() && ImGui.isMouseHoveringRect(g.x(),top,g.panelRight(),bottom)) {
-                if(ImGui.isMouseClicked(0)) MorphPicker.openTimeline(actor,null);
+                if(ImGui.isMouseClicked(0)) MorphLibrary.open(null,actor);
                 if(ImGui.isMouseClicked(1)) { MorphTracks.finish(); context=null; ImGui.openPopup("##MorphContext"); }
             }
             if(g.laneRight()>g.laneLeft() && g.pixelsPerTick()>0) {
@@ -47,10 +47,10 @@ public final class MorphTrack {
                         draw.pushClipRect(a+6,top,b-5,bottom,true); draw.addText(a+7,y,0xfff5f1ed,label); draw.popClipRect();
                     }
                     if(hover && dragging==null) {
-                        ImGui.setTooltip(label+"\nDrag to move. Drag an edge to trim. Double click to edit.");
+                        ImGui.setTooltip(label+"\nDrag to move. Drag an edge to trim. Double click to browse the morph library.");
                         if(ImGui.isMouseClicked(0)) {
                             MorphTracks.finish(); MorphTracks.selected=c.id;
-                            if(ImGui.isMouseDoubleClicked(0)) MorphPicker.openTimeline(actor,c.id);
+                            if(ImGui.isMouseDoubleClicked(0)) MorphLibrary.open(c.morph,actor);
                             else if(!actor.take.locked) { MorphTracks.begin(); dragging=c.id; dragActor=actor.take.id; mouse=ImGui.getMousePosX(); start=c.start; end=c.end; mode=Math.abs(mouse-x0)<6?1:Math.abs(mouse-x1)<6?2:0; }
                         }
                         if(ImGui.isMouseClicked(1)) { MorphTracks.finish(); context=c.id; MorphTracks.selected=c.id; ImGui.openPopup("##MorphContext"); }
@@ -83,14 +83,13 @@ public final class MorphTrack {
         if(ImGui.beginPopup("##MorphContext")) {
             var c=track.find(context);
             if(c!=null && actor.take.id.equals(c.actor)) {
-                if(ImGui.menuItem("Edit morph clip")) MorphPicker.openTimeline(actor,c.id);
                 ImGui.beginDisabled(actor.take.locked);
                 if(ImGui.menuItem(c.enabled?"Mute clip":"Unmute clip")) MorphTracks.edit(() -> c.enabled=!c.enabled);
                 if(ImGui.menuItem("Duplicate morph clip")) MorphTracks.duplicate(c.id);
                 if(ImGui.menuItem("Delete morph clip")) MorphTracks.edit(() -> track.clips.remove(c));
                 ImGui.endDisabled(); ImGui.separator();
             }
-            if(ImGui.menuItem("Browse bodies")) MorphPicker.open(actor);
+            if(ImGui.menuItem("Morph library...")) MorphLibrary.open(c==null?null:c.morph,actor);
             ImGui.beginDisabled(actor.take.locked);
             if(ImGui.menuItem("Delete morph track")) MorphTracks.edit(() -> track.clips.removeIf(c2 -> actor.take.id.equals(c2.actor)));
             ImGui.endDisabled(); ImGui.endPopup();

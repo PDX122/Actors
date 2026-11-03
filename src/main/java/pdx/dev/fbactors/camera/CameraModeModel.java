@@ -7,7 +7,7 @@ public final class CameraModeModel {
                                             double seconds,double eye,BoatCam.Settings s) {
         double speed=Math.hypot(vx,vz);
         double travel=speed>.01?Math.toDegrees(Math.atan2(-vx,vz)):yaw;
-        double heading=s.mode()==6?travel:s.mode()==1?BoatCameraModel.angle(yaw,travel,speed>.01?.65:0):yaw;
+        double heading=CameraModesCatalog.usesTravel(s.mode())?travel:s.mode()==1?BoatCameraModel.angle(yaw,travel,speed>.01?.65:0):yaw;
         if(s.mode()==2) heading=seconds*s.orbit();
         double radians=Math.toRadians(heading),fx=-Math.sin(radians),fz=Math.cos(radians),rx=Math.cos(radians),rz=Math.sin(radians);
         double distance=s.distance(),cx=x-fx*distance,cy=y+s.height(),cz=z-fz*distance;
@@ -17,7 +17,7 @@ public final class CameraModeModel {
         double roll=Math.max(-s.bank(),Math.min(s.bank(),-turn*s.bank()/8));
         float fov=(float)Math.max(30,Math.min(110,s.fov()+Math.min(12,speed*s.speedFov())));
         if(s.mode()==1) {
-            double side=Math.copySign(Math.max(distance,Math.abs(s.side())),s.side()==0?1:s.side());
+            double side=s.side();
             cx=x+rx*side-fx*distance*.15; cz=z+rz*side-fz*distance*.15;
             ax=x+leadX*.4; az=z+leadZ*.4; roll*=.35;
         } else if(s.mode()==2) { ax=x; az=z; roll=0; }
@@ -28,7 +28,7 @@ public final class CameraModeModel {
             cx=x+fx*distance; cz=z+fz*distance; ax=x; az=z; roll*=.25;
         } else if(s.mode()==5) {
             return new BoatCameraModel.Shot(x,y+Math.max(2,distance+s.height()),z,0,90,0,(float)s.fov());
-        } else if(s.mode()>=8) {
+        } else if((s.mode()>=8 && s.mode()<=13) || s.mode()>=21) {
 
             double t=Math.max(0,Math.min(1,seconds/8)),progress=t*t*(3-2*t);
             ax=x; az=z; roll=0; fov=(float)s.fov();
@@ -46,7 +46,27 @@ public final class CameraModeModel {
                 cx=x-fx*distance*factor; cz=z-fz*distance*factor;
                 cy=ay+(y+s.height()-ay)*factor;
                 fov=(float)Math.max(30,Math.min(110,Math.toDegrees(2*Math.atan(Math.tan(Math.toRadians(s.fov())*.5)/factor))));
+            } else if(s.mode()==21 || s.mode()==23) {
+                double angle=Math.toRadians(s.mode()==21?yaw-65+170*progress:seconds*s.orbit());
+                cx=x+Math.sin(angle)*distance; cz=z-Math.cos(angle)*distance;
+                cy=y+s.height()+(s.mode()==23?progress*distance*.35:0);
+            } else if(s.mode()==22) {
+                cx=x-fx*distance*(1-progress); cz=z-fz*distance*(1-progress);
+                cy=y+s.height()+distance*progress;
             }
+        } else if(s.mode()>=14 && s.mode()<=20) {
+            if(s.mode()==15) {
+                cx=x+fx*distance; cz=z+fz*distance; ax=x; az=z; roll=0;
+            } else if(s.mode()==16 || s.mode()==18) {
+                double side=distance+s.side();
+                cx=x+rx*side; cz=z+rz*side; ax=x; az=z; roll=0;
+            } else if(s.mode()==17) {
+                cx+=rx*s.side(); cz+=rz*s.side(); ay=y+aimHeight(eye);
+            } else if(s.mode()==19) {
+                cx+=rx*s.side(); cz+=rz*s.side(); cy=y+eye+(s.height()-2.6);
+                ax=x+fx*Math.max(4,s.ahead()*2); az=z+fz*Math.max(4,s.ahead()*2); ay=y+eye;
+                roll=0;
+            } else if(s.mode()==20) { roll=0; }
         }
         return lookAt(cx,cy,cz,ax,ay,az,roll,fov);
     }

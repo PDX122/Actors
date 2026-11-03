@@ -35,3 +35,10 @@ You return to the editor camera and the take's starting playhead. See [timeline 
 Takes are saved per replay under `flashback/fbactors/<replay-uuid>/`. They are separate from the replay recording. Keep that folder when backing up a scene.
 
 Use [sharing and storage](sharing.md) when moving a cast to another installation. Take format history is recorded in the [changelog](changelog.md); older builds can refuse files written by a newer format.
+
+
+The `/start` countdown shows a bold colored number and plays a tone each second,
+including longer delays. The final three counts progress from gold to yellow
+to red with rising tones, followed by a green **ACTION!** cue and a higher chime.
+Use the countdown in Recording settings for `/start` without an argument, or
+enter a delay such as `/start 5s`.

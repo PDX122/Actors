@@ -7,7 +7,7 @@ import pdx.dev.fbactors.camera.CameraPreviewMesh.Vertex;
 import pdx.dev.fbactors.camera.CameraPreviewMesh.Face;
 
 public final class CameraModesPreview {
-    record Key(BoatCam.Settings settings,long skin,long partner,long grass,long stone,boolean slim,boolean partnerSlim,float width,float height) {}
+    record Key(BoatCam.Settings settings,long skin,long partner,long grass,long stone,long mount,boolean slim,boolean partnerSlim,float width,float height) {}
     record Triangle(long texture,CameraModePreviewScene.Pixel a,CameraModePreviewScene.Pixel b,CameraModePreviewScene.Pixel c,
                             Vertex ua,Vertex ub,Vertex uc,int color,int fog) {}
     private record Cached(Key key,int budget,List<Triangle> triangles,long time) {}
@@ -16,11 +16,13 @@ public final class CameraModesPreview {
     static final int DRAW_LIST_CEILING=48_000;
     static final int CHROME_RESERVE=512;
     static int triangleBudget(int currentVertices,boolean animated) {
-        return Math.max(0,Math.min(animated?1200:250,(DRAW_LIST_CEILING-currentVertices-CHROME_RESERVE)/VERTICES_PER_TRIANGLE));
+        return Math.max(0,Math.min(animated?1200:120,(DRAW_LIST_CEILING-currentVertices-CHROME_RESERVE)/VERTICES_PER_TRIANGLE));
     }
+    private static double previewStarted=Double.NaN;
+    public static void restart() { previewStarted=Double.NaN; }
     private static final Map<Integer,Cached> cache=new HashMap<>();
     private CameraModesPreview() {}
-    public static void reopen() { CameraPreviewAssets.retryFailed(); }
+    public static void reopen() { CameraPreviewAssets.retryFailed(); restart(); }
     public static boolean draw(String id,BoatCam.Settings tuning,float width,float height,boolean animated) {
         width=Math.max(1,width); height=Math.max(1,height);
         boolean clicked=ImGui.invisibleButton(id,width,height);
@@ -40,12 +42,14 @@ public final class CameraModesPreview {
                 var subject=CameraPreviewAssets.subject();
                 var second=BoatStudioState.get().rival; if(second==null) second=subject;
                 long skin=CameraPreviewAssets.skin(subject),partner=CameraPreviewAssets.skin(second);
-                long grass=CameraPreviewAssets.floor("grass_block_top"),stone=CameraPreviewAssets.floor("stone");
-                var key=new Key(tuning,skin,partner,grass,stone,CameraPreviewAssets.slim(subject),CameraPreviewAssets.slim(second),width,height);
+                long grass=CameraPreviewAssets.floor(CameraModePreviewScene.ice(tuning.mode())?"blue_ice":"grass_block_top"),stone=CameraPreviewAssets.floor("stone");
+                long mount=CameraModePreviewScene.ice(tuning.mode()) || CameraModePreviewScene.horse(tuning.mode())?CameraPreviewAssets.floor("oak_planks"):0;
+                var key=new Key(tuning,skin,partner,grass,stone,mount,CameraPreviewAssets.slim(subject),CameraPreviewAssets.slim(second),width,height);
+                if(animated && !Double.isFinite(previewStarted)) previewStarted=ImGui.getTime();
                 int slot=tuning.mode()*2+(animated?1:0); long now=System.nanoTime();
                 var previous=cache.get(slot);
                 if(previous==null || !previous.key().equals(key) || previous.budget()!=budget || animated && now-previous.time()>16_666_666L) {
-                    previous=new Cached(key,budget,scene(key,animated?ImGui.getTime()%(tuning.mode()>=10?12:3600):3.5,budget),now); cache.put(slot,previous);
+                    previous=new Cached(key,budget,scene(key,animated?(ImGui.getTime()-previewStarted)%(CameraModesCatalog.timed(tuning.mode()) && tuning.mode()!=2?12:3600):3.5,budget),now); cache.put(slot,previous);
                 }
                 for(var t:previous.triangles()) {
                     draw.addImageQuad(t.texture(),
@@ -80,7 +84,7 @@ public final class CameraModesPreview {
         return result;
     }
     private static List<Triangle> baseScene(Key key,double seconds,int detail) {
-        var player=CameraModePreviewScene.subject(seconds);
+        var player=CameraModePreviewScene.subject(seconds,key.settings().mode());
         var camera=CameraModePreviewScene.camera(key.settings(),seconds,key.width()/key.height());
         var view=new CameraModePreviewScene.View(camera,key.width(),key.height());
         var faces=new ArrayList<Face>();
@@ -91,7 +95,9 @@ public final class CameraModesPreview {
         radius=(radius+3)/4*4;
         int cell=4*Math.min(detail,16);
         for(int z=Math.floorDiv(oz-radius,cell)*cell;z<oz+radius;z+=cell) for(int x=Math.floorDiv(ox-radius,cell)*cell;x<ox+radius;x+=cell) {
-            boolean path=Math.abs(x+.5-Math.sin((z+.5)*.275)*4)<1.2;
+            boolean iceTrack=CameraModePreviewScene.ice(key.settings().mode()),horseTrail=CameraModePreviewScene.horse(key.settings().mode());
+            double pathX=Math.sin((z+cell*.5)*.275/(iceTrack?4:horseTrail?1.8:1))*(iceTrack?8:horseTrail?5.2:4);
+            boolean path=iceTrack?Math.abs(x+cell*.5-pathX)>5:Math.abs(x+cell*.5-pathX)<1.2;
             long texture=path?key.stone():key.grass(); if(texture==0) continue;
             boolean nearby=Math.hypot(x+cell*.5-player.x(),z+cell*.5-player.z())<6
                 || key.settings().mode()==7 && Math.hypot(x+cell*.5-partner.x(),z+cell*.5-partner.z())<6;
@@ -100,13 +106,23 @@ public final class CameraModesPreview {
                 float u=(float)col/divisions,v=(float)row/divisions,step=1f/divisions;
                 double shadow=shadow(x+(u+step/2)*cell,z+(v+step/2)*cell,player);
                 if(key.settings().mode()==7) shadow=Math.max(shadow,shadow(x+(u+step/2)*cell,z+(v+step/2)*cell,partner));
-                int tint=mix(path?0xffe2e6e8:0xff80a785,0xff384438,shadow*.58);
+                int tint=mix(path?0xffe2e6e8:CameraModePreviewScene.ice(key.settings().mode())?0xffffd8aa:0xff80a785,0xff384438,shadow*.58);
                 faces.add(new Face(texture,List.of(groundVertex(x,z,u,v,cell),groundVertex(x,z,u+step,v,cell),
                     groundVertex(x,z,u+step,v+step,cell),groundVertex(x,z,u,v+step,cell)),tint));
             }
         }
-        if(key.skin()!=0) faces.addAll(CameraPreviewMesh.player(key.skin(),key.slim(),player,CameraModePreviewScene.heading(seconds),seconds));
-        if(key.settings().mode()==7 && key.partner()!=0) faces.addAll(CameraPreviewMesh.player(key.partner(),key.partnerSlim(),CameraModePreviewScene.partner(seconds),CameraModePreviewScene.heading(seconds),seconds+.5));
+        boolean ice=CameraModePreviewScene.ice(key.settings().mode()),horse=CameraModePreviewScene.horse(key.settings().mode());
+        double yaw=CameraModePreviewScene.heading(seconds,key.settings().mode());
+        if(key.mount()!=0 && (ice || horse)) faces.addAll(CameraPreviewMesh.mount(key.mount(),player,yaw+(ice?Math.sin(seconds*.8)*30:0),seconds,horse));
+        var rider=new Point(player.x(),horse?1:ice?-.25:0,player.z());
+        if(key.skin()!=0) {
+            var mesh=CameraPreviewMesh.player(key.skin(),key.slim(),rider,yaw+(ice?Math.sin(seconds*.8)*30:0),seconds,ice || horse);
+            faces.addAll(detail>=2?mesh.subList(0,36):mesh);
+        }
+        if(key.settings().mode()==7 && key.partner()!=0) {
+            var mesh=CameraPreviewMesh.player(key.partner(),key.partnerSlim(),CameraModePreviewScene.partner(seconds),CameraModePreviewScene.heading(seconds),seconds+.5);
+            faces.addAll(detail>=2?mesh.subList(0,36):mesh);
+        }
         faces.sort(Comparator.comparingDouble((Face f) -> f.vertices().stream().mapToDouble(v -> view.depth(v.point())).average().orElse(0)).reversed());
         var triangles=new ArrayList<Triangle>();
         for(var face:faces) {
