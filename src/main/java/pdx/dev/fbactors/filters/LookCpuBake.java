@@ -555,13 +555,13 @@ public final class LookCpuBake {
         for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) {
             int i = 3 * (y * w + x);
             float l = luma(clamp01(in[i]), clamp01(in[i + 1]), clamp01(in[i + 2]));
-            float signal = (float) Math.pow(clamp01(l * gain), 0.65);
-            float scan = 0.93f + 0.07f * (float) Math.cos((y + 0.5f) * Math.PI);
-            float r = (0.005f + (0.45f - 0.005f) * signal) * scan;
-            float g = (0.025f + (1.0f - 0.025f) * signal) * scan;
-            float b = (0.008f + (0.12f - 0.008f) * signal) * scan;
+            float signal = (float) Math.pow(1-Math.exp(-l * gain * 1.35), 0.75);
+            float scan = 0.985f + 0.015f * (float) Math.cos((y + 0.5f) * Math.PI);
+            float r = (0.005f + (0.62f - 0.005f) * signal) * scan;
+            float g = (0.025f + (0.94f - 0.025f) * signal) * scan;
+            float b = (0.008f + (0.54f - 0.008f) * signal) * scan;
             float n = hash(x + 0.5f + frame, y + 0.5f + frame) - 0.5f;
-            writeClamped(out, i, r + n * 0.025f, g + n * 0.025f, b + n * 0.025f);
+            writeClamped(out, i, r + n * 0.01f, g + n * 0.01f, b + n * 0.01f);
         }
     }
 
@@ -679,7 +679,7 @@ public final class LookCpuBake {
             g = g * 0.81f + 0.055f;
             b = b * 0.55f + 0.035f;
             float n = hash(x + 0.5f, y + 0.5f) - 0.5f;
-            writeClamped(out, i, r + n * 0.025f, g + n * 0.025f, b + n * 0.025f);
+            writeClamped(out, i, r + n * 0.01f, g + n * 0.01f, b + n * 0.01f);
         }
     }
 

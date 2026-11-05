@@ -12,9 +12,9 @@ import org.junit.jupiter.api.io.TempDir;
 
 class LookSettingsTest {
     @Test void catalogContainsOnlyOriginalShaderSources() {
-        assertEquals(60, FilterCatalog.entries().size());
+        assertEquals(70, FilterCatalog.entries().size());
         assertTrue(FilterCatalog.entries().stream().allMatch(entry -> entry.origin().equals("Actors")));
-        assertEquals(60, FilterCatalog.entries().stream().map(FilterCatalog.Entry::id).distinct().count());
+        assertEquals(70, FilterCatalog.entries().stream().map(FilterCatalog.Entry::id).distinct().count());
         for (var entry : FilterCatalog.entries()) {
             String shader = FilterGpuPipeline.source(entry.id());
             assertTrue(shader.contains("void main("), entry.id());

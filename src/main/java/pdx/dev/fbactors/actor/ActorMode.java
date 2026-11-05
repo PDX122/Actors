@@ -167,7 +167,10 @@ public final class ActorMode {
                     FlashbackActors.LOGGER.info("Recording actor take from tick {}", replayTick);
                 }
             }
-            case RECORDING -> FlashbackActors.RECORDER.sample(viewer, replayTick);
+            case RECORDING -> {
+                FlashbackActors.RECORDER.sample(viewer, replayTick);
+                if (!viewer.isAlive()) FlashbackActors.finishTake(replay, viewer);
+            }
             default -> {
             }
         }
@@ -175,6 +178,7 @@ public final class ActorMode {
 
     @Nullable
     public static ActorTake finish(ReplayServer replay, ServerPlayer viewer) {
+        if (phase == Phase.IDLE && FlashbackActors.RECORDER.current() == null) return null;
         ActorTake take = FlashbackActors.RECORDER.stop();
         clearTitles(viewer);
 
@@ -189,6 +193,19 @@ public final class ActorMode {
         replay.replayPaused = true;
         viewer.stopRiding();
         detachCamera(viewer);
+        if (!viewer.isAlive()) {
+            viewer.setHealth(viewer.getMaxHealth());
+            viewer.deathTime = 0;
+            viewer.hurtTime = 0;
+            viewer.clearFire();
+            var client = net.minecraft.client.Minecraft.getInstance();
+            client.execute(() -> {
+                if (!isActive() && client.player != null && !client.player.isAlive()) {
+                    client.player.setHealth(client.player.getMaxHealth());
+                    pdx.dev.fbactors.compat.Compat.closeScreen();
+                }
+            });
+        }
         viewer.setGameMode(GameType.SPECTATOR);
         viewer.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
         if (editorPosition != null && pdx.dev.fbactors.settings.FbSettings.settings().restoreEditorCamera) {

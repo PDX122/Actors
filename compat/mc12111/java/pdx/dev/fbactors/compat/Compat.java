@@ -693,6 +693,18 @@ return new ItemStack(item, Math.max(1, count));
         } catch (Exception failure) { return null; }
     }
 
+    public static float eventCloudHeight() {var mc=Minecraft.getInstance();return mc.level==null || mc.player==null?Float.NaN:mc.level.environmentAttributes().getValue(net.minecraft.world.attribute.EnvironmentAttributes.CLOUD_HEIGHT,mc.player.position());}
+
+    public static boolean isMainCamera(Object camera) {return camera==Minecraft.getInstance().gameRenderer.getMainCamera();}
+
+    public static pdx.dev.fbactors.events.EventCamera eventCamera() {
+        var camera=Minecraft.getInstance().gameRenderer.getMainCamera();
+        double fov=Minecraft.getInstance().options.fov().get();
+        var editor=com.moulberry.flashback.state.EditorStateManager.getCurrent();
+        if(editor!=null && editor.replayVisuals.overrideFov)fov=editor.replayVisuals.overrideFovAmount;
+        return new pdx.dev.fbactors.events.EventCamera(camera.position(),new org.joml.Quaternionf(camera.rotation()),Minecraft.getInstance().gameRenderer.getProjectionMatrix((float)fov));
+    }
+
     public static float[] projectActorPoint(net.minecraft.world.phys.Vec3 world) {
         var camera = Minecraft.getInstance().gameRenderer.getMainCamera();
         var position = camera.position();
@@ -1150,11 +1162,14 @@ private static void driveWalkAnimation(UUID id, Entity actor, LivingEntity mob,
 
     public static net.minecraft.world.entity.LivingEntity createSkinPreview(GameProfile profile) {
         var client = Minecraft.getInstance();
-        var skin = SKIN_PREVIEW_APPEARANCES.get(profileId(profile));
+        var skin = SKIN_PREVIEW_APPEARANCES.getOrDefault(profileId(profile), client.player != null && profileId(profile).equals(profileId(client.player.getGameProfile())) ? client.player.getSkin() : null);
         if (client.level == null || skin == null) return null;
         var previewTeam = new net.minecraft.world.scores.PlayerTeam(new net.minecraft.world.scores.Scoreboard(), "skin_preview");
         previewTeam.setNameTagVisibility(net.minecraft.world.scores.Team.Visibility.NEVER);
         var player = new net.minecraft.client.player.RemotePlayer(client.level, profile) {
+            @Override public boolean isSpectator() { return false; }
+            @Override public boolean isCreative() { return false; }
+            public net.minecraft.world.level.GameType gameMode() { return net.minecraft.world.level.GameType.SURVIVAL; }
             @Override public net.minecraft.world.entity.player.PlayerSkin getSkin() { return skin; }
             @Override public net.minecraft.world.scores.PlayerTeam getTeam() { return previewTeam; }
             @Override public boolean isModelPartShown(net.minecraft.world.entity.player.PlayerModelPart part) { return true; }
@@ -1236,4 +1251,16 @@ private static void driveWalkAnimation(UUID id, Entity actor, LivingEntity mob,
         var key=net.minecraft.resources.Identifier.tryParse(pdx.dev.fbactors.morph.MorphRegistry.entityIdFor(id));
         return key!=null && net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.containsKey(key);
     }
+    public static void previewGlide(net.minecraft.world.entity.LivingEntity mob) { mob.elytraAnimationState.tick(); }
+
+    public static net.minecraft.world.entity.Entity cameraPreviewBoatEntity() {
+        var client=Minecraft.getInstance();if(client.level==null)return null;
+        var type=resolveType("oak_boat");if(type==null)type=resolveType("boat");if(type==null)return null;
+        var entity=type.create(client.level, EntitySpawnReason.COMMAND);
+        return entity;
+    }
+    public static net.minecraft.client.model.geom.ModelPart cameraPreviewBoatRoot() {
+        return Minecraft.getInstance().getEntityModels().bakeLayer(net.minecraft.client.model.geom.ModelLayers.OAK_BOAT);
+    }
+
 }

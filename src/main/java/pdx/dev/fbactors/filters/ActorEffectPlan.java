@@ -5,7 +5,8 @@ import java.util.Set;
 public final class ActorEffectPlan {
     private static final Set<String> SCREEN = Set.of("tessera", "ascii", "vhs_damage", "digital_glitch",
         "hologram", "sonar", "melt", "matrix_rain", "neon_spectrum", "arcade", "halftone",
-        "crosshatch", "risograph", "cel_shade", "neon_wire", "pixel_sort", "codec_smear", "signal_rot", "bitcrush");
+        "crosshatch", "risograph", "cel_shade", "neon_wire", "pixel_sort", "codec_smear", "signal_rot", "bitcrush",
+        "circuit_scan", "plasma_field", "spectral_echo", "data_vortex", "hex_shield", "kaleidoscope", "fpv_analog", "action_camera", "fpv_digital", "uav_feed");
     private ActorEffectPlan() {}
 
     public static boolean needsBounds(LookSettings look) {

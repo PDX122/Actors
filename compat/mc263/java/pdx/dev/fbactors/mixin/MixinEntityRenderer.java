@@ -17,6 +17,10 @@ public abstract class MixinEntityRenderer {
     @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
     private void fbactors$hideMorphedPlayer(Entity entity, Frustum frustum, double x,
             double y, double z, float tickDelta, CallbackInfoReturnable<Boolean> cir) {
+        if (pdx.dev.fbactors.camera.BoatCam.hides(entity.getUUID())) {
+            cir.setReturnValue(false);
+            return;
+        }
         MorphRenderInfo info = MorphRenderState.get(entity.getUUID());
         MorphRenderState.noteRenderLookup(entity.getUUID(), info != null && !info.isPlayer());
         if (info == null || info.isPlayer()) {

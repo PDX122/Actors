@@ -81,6 +81,30 @@ final class Harness {
             return;
         }
         if(converted && !requested) replay.replayPaused=false;
+        if("1".equals(System.getenv("FBACTORS_EVENTS_QA"))) {
+            if (Flashback.isExporting()) return;
+            if(Minecraft.getInstance().player==null || pdx.dev.fbactors.compat.Compat.hasOpenScreen(Minecraft.getInstance())) {readyTicks=0;return;}
+            if(++readyTicks<40)return;
+            if(!EventTailChecks.tick(replay))return;
+            if(!EventCameraChecks.tick(replay))return;
+            if(!EventSoundChecks.tick(replay))return;
+            replay.replayPaused=true;
+            verifyEventCameraAndAudio();
+            var cameraRange=pdx.dev.fbactors.camera.CameraExport.events(pdx.dev.fbactors.events.Events.timeline(),-1,-1);
+            if(pdx.dev.fbactors.events.Events.timeline().clips.stream().noneMatch(c->c.enabled && c.eventCam && c.kind.available()) && cameraRange.start()!=-1)
+                throw new IllegalStateException("Non-cinematic events expanded the export camera range");
+            for(var kind:pdx.dev.fbactors.events.EventKind.LIBRARY)if(pdx.dev.fbactors.events.EventPreview.thumbnail(kind)==0)throw new IllegalStateException("Missing event gallery render: "+kind);
+            pdx.dev.fbactors.events.EventsMenu.open("ICBM".equals(System.getenv("FBACTORS_EVENTS_QA_KIND"))?pdx.dev.fbactors.events.EventKind.ICBM:pdx.dev.fbactors.events.EventKind.NUCLEAR);
+            fileVerdict("READY","Events library open; fixed-camera impact past recorded footage, camera restore and ICBM audio verified");
+            return;
+        }
+        if("1".equals(System.getenv("FBACTORS_CAMERA_PREVIEW_QA"))) {
+            if(Minecraft.getInstance().player==null || pdx.dev.fbactors.compat.Compat.hasOpenScreen(Minecraft.getInstance())) { readyTicks=0;return; }
+            if(++readyTicks<40 || !ReleaseVisualChecks.tick()) return;
+            String failure=ReleaseVisualChecks.error();
+            fileVerdict(failure==null?"PASS":"FAIL",failure==null?"Native camera preview captures":failure);
+            return;
+        }
         if("1".equals(System.getenv("FBACTORS_VISUAL_FOCUS"))) {
             if(Minecraft.getInstance().player==null || pdx.dev.fbactors.compat.Compat.hasOpenScreen(Minecraft.getInstance())) { readyTicks=0; return; }
             if(++readyTicks<40) return;
@@ -225,4 +249,41 @@ final class Harness {
             FlashbackActors.LOGGER.error("Harness could not write its verdict file", e);
         }
     }
+    private static void verifyEventCameraAndAudio() {
+        // Start from the viewer's saved pose even if a persisted event already owns the camera.
+        pdx.dev.fbactors.events.EventCam.stop();
+        var mc=Minecraft.getInstance();var track=pdx.dev.fbactors.events.Events.timeline();
+        var clip=new pdx.dev.fbactors.events.EventClip();clip.kind=pdx.dev.fbactors.events.EventKind.NUCLEAR;
+        clip.eventCam=true;clip.start=(int)Math.floor(pdx.dev.fbactors.camera.BoatSubjects.clock());clip.end=clip.start+560;
+        clip.launch=clip.impact=new pdx.dev.fbactors.events.EventClip.Point(mc.player.getX()+30,mc.player.getY(),mc.player.getZ()+30);
+        var original=new java.util.ArrayList<>(track.clips);boolean enabled=track.enabled;
+        double x=mc.player.getX(),y=mc.player.getY(),z=mc.player.getZ();
+        var visuals=com.moulberry.flashback.state.EditorStateManager.getCurrent().replayVisuals;
+        boolean fov=visuals.overrideFov;float amount=visuals.overrideFovAmount;
+        try {
+            track.clips.clear();track.clips.add(clip);track.enabled=true;
+            if(!pdx.dev.fbactors.events.EventCam.renderFrame() || pdx.dev.fbactors.events.EventCam.renderedShot()==null)
+                throw new IllegalStateException("Event cam did not take ownership");
+            clip.enabled=false;pdx.dev.fbactors.events.EventCam.renderFrame();
+            clip.kind=pdx.dev.fbactors.events.EventKind.ICBM;clip.impact=clip.launch.add(95,0,0);
+            clip.start=(int)Math.floor(pdx.dev.fbactors.camera.BoatSubjects.clock())-160;clip.end=clip.start+360;clip.enabled=true;
+            if(!pdx.dev.fbactors.events.EventCam.renderFrame() || pdx.dev.fbactors.events.EventCam.renderedShot().y()<y+5000)
+                throw new IllegalStateException("ICBM camera did not reach the space coast");
+            clip.enabled=false;pdx.dev.fbactors.events.EventCam.renderFrame();
+            if(Math.abs(mc.player.getX()-x)+Math.abs(mc.player.getY()-y)+Math.abs(mc.player.getZ()-z)>.001
+                || visuals.overrideFov!=fov || visuals.overrideFovAmount!=amount)
+                throw new IllegalStateException("Event cam failed to restore viewer: expected "+x+","+y+","+z+" FOV "+fov+"/"+amount
+                    +", actual "+mc.player.getX()+","+mc.player.getY()+","+mc.player.getZ()+" FOV "+visuals.overrideFov+"/"+visuals.overrideFovAmount);
+            var sounds=new net.minecraft.client.sounds.SoundBufferLibrary(mc.getResourceManager());
+            try {
+                for(String name:pdx.dev.fbactors.events.EventAudioPlan.FILES) {
+                    var layer=pdx.dev.fbactors.compat.CompatSounds.eventFile("events/icbm/"+name);
+                    if(sounds.getCompleteBuffer(layer.getPath()).join()==null)throw new IllegalStateException("Event audio could not decode: "+name);
+                }
+            } finally {sounds.clear();}
+        } finally {
+            pdx.dev.fbactors.events.EventCam.stop();track.clips.clear();track.clips.addAll(original);track.enabled=enabled;
+        }
+    }
+
 }

@@ -52,10 +52,11 @@ public class MixinTimelineWindow {
                                                    int trackMiddleX, CallbackInfo ci) {
         TimelineGeometry geometry = new TimelineGeometry(trackX, width, y + middleY, y + height,
             trackMiddleX, timelineOffset, minTicks, availableTicks, timelineWidth);
+        pdx.dev.fbactors.events.EventsTrack.render(geometry, cursorTicks);
         pdx.dev.fbactors.filters.EffectsTrack.render(geometry, cursorTicks);
         pdx.dev.fbactors.camera.BoatTrack.render(geometry, cursorTicks);
         ActorTrack.render(geometry, cursorTicks);
-        if (pdx.dev.fbactors.morph.MorphTrack.isDragging() || pdx.dev.fbactors.camera.BoatTrack.isDragging() || ActorTrack.isDragging() || pdx.dev.fbactors.filters.EffectsTrack.isDragging()) {
+        if (pdx.dev.fbactors.events.EventsTrack.isDragging() || pdx.dev.fbactors.morph.MorphTrack.isDragging() || pdx.dev.fbactors.camera.BoatTrack.isDragging() || ActorTrack.isDragging() || pdx.dev.fbactors.filters.EffectsTrack.isDragging()) {
             dragSelectOrigin = null;
         }
     }
@@ -67,7 +68,7 @@ public class MixinTimelineWindow {
         long lookRows = FlashbackActors.ACTORS.actors().stream().filter(actor -> pdx.dev.fbactors.filters.Effects.timeline()
             .clips.stream().anyMatch(clip -> actor.take.id.equals(clip.actor))).count();
         long morphRows=FlashbackActors.ACTORS.actors().stream().filter(actor -> pdx.dev.fbactors.morph.MorphTracks.timeline().clips.stream().anyMatch(c -> actor.take.id.equals(c.actor))).count();
-        return totalTrackHeight + (FlashbackActors.ACTORS.actors().size() + 3 + lookRows + morphRows) * lineHeight;
+        return totalTrackHeight + (FlashbackActors.ACTORS.actors().size() + 4 + lookRows + morphRows + pdx.dev.fbactors.events.Events.timeline().clips.size()) * lineHeight;
     }
 
     @ModifyArg(method = "renderInner",

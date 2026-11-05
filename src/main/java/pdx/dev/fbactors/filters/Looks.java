@@ -25,6 +25,10 @@ public final class Looks {
     public static long previewTexture() { return previewHandle; }
     public static float previewAspect() { return 16f / 9; }
     public static void refreshPreviews() { previews.close(); previewHandle = 0; previewFailed = false; }
+    private static LookSettings livePreview;
+    private static long livePreviewUntil;
+    public static void preview(LookSettings look) { livePreview=look.copy(); livePreviewUntil=System.nanoTime()+500_000_000L; }
+    public static void stopPreview() { livePreview=null; livePreviewUntil=0; }
     public static boolean compare;
     public static String status = "";
 
@@ -91,7 +95,15 @@ public final class Looks {
         Effects.tick();
         settings();
         ActorMosaic.render();
-        LookSettings look = Effects.timeline().evaluate(Math.max(0, FlashbackActors.replayTick()), new LookSettings());
+        double clock=pdx.dev.fbactors.camera.BoatSubjects.clock();
+        if(!Double.isFinite(clock)) clock=0;
+        var studio=pdx.dev.fbactors.camera.BoatStudioState.get();
+        var cameraClip=studio.timeline.active(clock);
+        var telemetry=pdx.dev.fbactors.camera.BoatSubjects.client(cameraClip==null
+            ? (studio.target==null?pdx.dev.fbactors.camera.BoatSubjects.SPECTATED:studio.target):cameraClip.target,clock);
+        CameraTelemetry.update(telemetry,pdx.dev.fbactors.camera.BoatCam.renderedShot());
+        LookSettings look = Effects.timeline().evaluate((float)Math.max(0,clock), new LookSettings());
+        if(!Flashback.isExporting() && livePreview!=null && System.nanoTime()<livePreviewUntil) look=livePreview;
         if (saveAt != 0 && System.nanoTime() >= saveAt) flush();
         if (!FilterGpuPipeline.isGlAvailable()) {
             renderNative(look);
@@ -115,7 +127,7 @@ public final class Looks {
             if (texture <= 0) { status = "Looks require the OpenGL graphics backend."; return; }
             if (pipeline == null) pipeline = new FilterGpuPipeline();
             var target = FilterRenderBridge.target(client);
-            float time = Math.max(0, FlashbackActors.replayTick()) / 20.0f;
+            float time = (float)Math.max(0,pdx.dev.fbactors.camera.BoatSubjects.clock()/20);
             if (apply) pipeline.render(texture, target.width, target.height, look, time);
         } catch (RuntimeException error) {
             look.enabled = false;
@@ -136,7 +148,7 @@ public final class Looks {
             if (Flashback.getReplayServer() == null || Minecraft.getInstance().level == null
                 || renderFailed) return;
             if (compare && !Flashback.isExporting()) { look = look.copy(); look.enabled = false; }
-            if (!FilterRenderBridge.renderNative(look, Math.max(0, FlashbackActors.replayTick()) / 20f))
+            if (!FilterRenderBridge.renderNative(look, (float)Math.max(0,pdx.dev.fbactors.camera.BoatSubjects.clock()/20)))
                 status = "The active graphics backend does not support scene looks.";
         } catch (RuntimeException error) {
             renderFailed = true;
@@ -158,5 +170,5 @@ public final class Looks {
         status = "Shaders reloaded.";
     }
 
-    public static void close() { Effects.close(); flush(); reload(); }
+    public static void close() { stopPreview(); Effects.close(); flush(); reload(); }
 }

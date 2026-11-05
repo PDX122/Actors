@@ -45,6 +45,7 @@ class PearlLookPipelineTest {
                 grade.exposure = 1;
                 pipeline.render(source, view, grade, 0);
                 assertPixel(device, output, 102, 204, 255);
+                assertEvents(device,pipeline,source,view,usage);
                 assertCustomShader(device,pipeline,source,view,shaderDirectory);
                 for (var entry : FilterCatalog.entries()) {
                     var look = new LookSettings();
@@ -223,6 +224,104 @@ class PearlLookPipelineTest {
                 assertTrue(dark>100, "ASCII must leave space between glyph strokes");
                 assertTrue(ink>100, "ASCII must render glyph strokes");
             }
+        }
+    }
+
+    private static void assertEvents(GpuDevice device,PearlLookPipeline pipeline,GpuTexture source,
+                                      com.mojang.renderpearl.api.textures.GpuTextureView output,int usage) {
+        var clip=new pdx.dev.fbactors.events.EventClip();clip.launch=new pdx.dev.fbactors.events.EventClip.Point(0,0,0);
+        clip.impact=new pdx.dev.fbactors.events.EventClip.Point(70,0,0);
+        var rotation=new org.joml.Matrix4f().lookAt(85,55,125,35,23,0,0,1,0).getUnnormalizedRotation(new org.joml.Quaternionf()).conjugate();
+        var camera=new pdx.dev.fbactors.events.EventCamera(new net.minecraft.world.phys.Vec3(85,55,125),rotation,
+            new org.joml.Matrix4f().perspective((float)Math.toRadians(55),1,1024,.05f,true));
+        try(var depth=device.createTexture("Event world depth",usage,GpuFormat.D32_FLOAT,64,64,1,1);
+            var depthView=device.createTextureView(depth);
+            var read=device.createBuffer(()->"Event readback",GpuBuffer.USAGE_MAP_READ|GpuBuffer.USAGE_COPY_DST,64*64*4)) {
+            for(var eventKind:new pdx.dev.fbactors.events.EventKind[]{pdx.dev.fbactors.events.EventKind.ICBM,pdx.dev.fbactors.events.EventKind.NUCLEAR}) for(float depthValue:new float[]{0,1}) {
+                clip.kind=eventKind;
+                var encoder=device.createCommandEncoder();encoder.clearDepthTexture(depth,depthValue);encoder.submit();
+                pipeline.renderEvent(source,output,depthView,pdx.dev.fbactors.events.EventRenderer.uniforms(clip,clip.end*.80,camera));
+                encoder=device.createCommandEncoder();encoder.copyTextureToBuffer(output.texture(),read,0,()->{},0);
+                try(var fence=encoder.createFence()) {encoder.submit();assertTrue(fence.awaitCompletion(10_000_000_000L));}
+                try(var mapped=read.map(true,false)) {
+                    int changed=0;var pixels=mapped.data();
+                    for(int i=0;i<64*64;i++) {
+                        assertEquals(255,pixels.get(i*4+3)&255);
+                        if(Math.abs((pixels.get(i*4)&255)-51)>2 || Math.abs((pixels.get(i*4+1)&255)-102)>2 || Math.abs((pixels.get(i*4+2)&255)-204)>2)changed++;
+                    }
+                    if(depthValue==0)assertTrue(changed>20,"Native event explosion must render");
+                    else assertEquals(0,changed,"Near world geometry must occlude the native event");
+                }
+            }
+            pipeline.eventPreview(output,pdx.dev.fbactors.events.EventPreview.uniforms(28.6667,true));
+            var spaceEncoder=device.createCommandEncoder();spaceEncoder.copyTextureToBuffer(output.texture(),read,0,()->{},0);
+            try(var fence=spaceEncoder.createFence()) {spaceEncoder.submit();assertTrue(fence.awaitCompletion(10_000_000_000L));}
+            try(var mapped=read.map(true,false)) {
+                int blue=0,dark=0;var pixels=mapped.data();
+                for(int i=0;i<64*64;i++) {
+                    int r=pixels.get(i*4)&255,g=pixels.get(i*4+1)&255,b=pixels.get(i*4+2)&255;
+                    assertEquals(255,pixels.get(i*4+3)&255);
+                    if(b>r*1.1 && b>g && b>30)blue++;
+                    if(r<25 && g<25 && b<25)dark++;
+                }
+                assertTrue(blue>100,"Native space view must show the textured blue Earth and atmosphere");
+                assertTrue(dark>100,"Native space view must include black space");
+            }
+            for(int ending:new int[]{3}) {
+                var mapClip=new pdx.dev.fbactors.events.EventClip();mapClip.eventCam=true;mapClip.ending=ending;
+                var values=pdx.dev.fbactors.events.EventPreview.uniforms(mapClip,mapClip.end/20.*.82,true,0);
+                pipeline.eventPreview(output,values);
+                var encoder=device.createCommandEncoder();encoder.copyTextureToBuffer(output.texture(),read,0,()->{},0);
+                try(var fence=encoder.createFence()) {encoder.submit();assertTrue(fence.awaitCompletion(10_000_000_000L));}
+                try(var mapped=read.map(true,false)) {
+                    int lit=0;var pixels=mapped.data();
+                    for(int i=0;i<64*64;i++) {
+                        assertEquals(255,pixels.get(i*4+3)&255);
+                        if((pixels.get(i*4)&255)+(pixels.get(i*4+1)&255)+(pixels.get(i*4+2)&255)>40)lit++;
+                    }
+                    if(ending==3)assertEquals(0,lit,"Cut to black must hide the impact");
+                    
+                }
+            }
+            for(int detail=0;detail<3;detail++) {
+                pipeline.eventPreview(output,pdx.dev.fbactors.events.EventPreview.uniforms(1.5,false,detail));
+                var encoder=device.createCommandEncoder();encoder.copyTextureToBuffer(output.texture(),read,0,()->{},0);
+                try(var fence=encoder.createFence()) {encoder.submit();assertTrue(fence.awaitCompletion(10_000_000_000L));}
+                try(var mapped=read.map(true,false)) {
+                    var pixels=mapped.data();int changed=0,dark=0;
+                    for(int i=0;i<64*64;i++) {
+                        assertEquals(255,pixels.get(i*4+3)&255);
+                        if(Math.abs((pixels.get(i*4)&255)-51)>2)changed++;
+                        if((pixels.get(i*4)&255)<95)dark++;
+                    }
+                    assertTrue(changed>500,"Native 3D preview must replace the source image");
+                    assertTrue(dark>10,"Native 3D preview must show model geometry in each detail view");
+                }
+            }
+            for(var kind:pdx.dev.fbactors.events.EventKind.LIBRARY) {
+                var eventValues=pdx.dev.fbactors.events.EventPreview.uniforms(kind,1.5,false,0);
+                pipeline.eventPreview(output,eventValues);
+                var encoder=device.createCommandEncoder();encoder.copyTextureToBuffer(output.texture(),read,0,()->{},0);
+                try(var fence=encoder.createFence()) {encoder.submit();assertTrue(fence.awaitCompletion(10_000_000_000L));}
+                byte[] snapshot=new byte[64*64*4];
+                try(var mapped=read.map(true,false)) {
+                    int dark=0;var pixels=mapped.data();
+                    for(int i=0;i<64*64;i++) {assertEquals(255,pixels.get(i*4+3)&255);if((pixels.get(i*4)&255)<90)dark++;}
+                    if(!kind.natural())assertTrue(dark>10,"Native bomb model must be visible: "+kind);
+                    pixels.get(0,snapshot);
+                }
+                if(kind.natural()) {
+                    var reference=new java.util.HashMap<>(eventValues);reference.put("Type",2f);pipeline.eventPreview(output,reference);
+                    var compare=device.createCommandEncoder();compare.copyTextureToBuffer(output.texture(),read,0,()->{},0);
+                    try(var fence=compare.createFence()) {compare.submit();assertTrue(fence.awaitCompletion(10_000_000_000L));}
+                    try(var mapped=read.map(true,false)) {
+                        int changed=0;var pixels=mapped.data();for(int i=0;i<snapshot.length;i+=4)if(Math.abs((snapshot[i]&255)-(pixels.get(i)&255))+Math.abs((snapshot[i+1]&255)-(pixels.get(i+1)&255))+Math.abs((snapshot[i+2]&255)-(pixels.get(i+2)&255))>8)changed++;
+                        assertTrue(changed>2,"Native 3D event must be visible: "+kind);
+                    }
+                }
+                pipeline.eventPreview(output,pdx.dev.fbactors.events.EventPreview.uniforms(kind,kind==pdx.dev.fbactors.events.EventKind.NUCLEAR?12:8,true,0));
+            }
+
         }
     }
 

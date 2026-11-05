@@ -13,6 +13,13 @@
     "MixinServerLevelSound",
     "MixinActorProjectileTick",
     "MixinMorphPreviewTarget",
+    "MixinCameraPreviewCapture",
+    "CameraPreviewEntityCapture",
+    "CameraPreviewFlightAccess",
+    "CameraPreviewGlideTicks",
+    "CameraPreviewEmfClock",
+    "CameraPreviewRowing",
+    "CameraPreviewBufferCapture",
     "MixinCatMorphPose",
     "MixinMorphActionState",
     "MixinMorphSeatedPose",
@@ -62,7 +69,13 @@
     "MixinEntityRenderer",
     "MixinSittingClone",
     "MixinBlockEntityChanged",
-    "MixinScreenBrowserButton"
+    "MixinScreenBrowserButton",
+    "MixinEventSoundBuffer",
+    "TimelineSoundManagerAccess",
+    "TimelineSoundEngineAccess",
+    "TimelineSoundChannelAccess",
+    "MixinEventReplayTail",
+    "MixinExportCredits"
   ],
   "injectors": {
     "defaultRequire": 1

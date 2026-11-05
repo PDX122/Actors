@@ -10,6 +10,13 @@ import pdx.dev.fbactors.ui.SkinPicker;
 
 @Mixin(value = ReplayUI.class, remap = false)
 public class MixinReplayUI {
+    @com.llamalad7.mixinextras.injector.ModifyExpressionValue(method = "drawOverlayInternal",
+        at = @At(value = "INVOKE", target = "Limgui/moulberry90/ImGui;isWindowHovered()Z"))
+    private static boolean fbactors$eventDragOverViewport(boolean hovered) {
+        return hovered || pdx.dev.fbactors.events.EventPlacement.active()
+            && imgui.moulberry90.ImGui.isWindowHovered(imgui.moulberry90.flag.ImGuiHoveredFlags.AllowWhenBlockedByActiveItem);
+    }
+
     @Inject(method = "drawOverlayInternal", at = @At("RETURN"))
     private static void fbactors$releaseEvidence(CallbackInfo ci) {
         pdx.dev.fbactors.debug.ErrorRecovery.run("Deferred morph previews",

@@ -23,6 +23,16 @@ Chases and fights are just multiple passes. Requires Flashback 0.39+ (0.42+ on 2
 Camera tools: [Camera modes and boat handling](docs-site/docs/camera-modes.md). Drag a mode
 onto an actor to create a following camera clip.
 
+Visual events: [Events library](docs-site/docs/events.md). Drag an ICBM onto a
+launch block, click its impact block, and stretch its event row to time the
+flight and explosion. Events leave world simulation unchanged.
+Nuclear drops, meteor impacts and meteor airbursts use a single world marker.
+Browse searchable 3D cards and preview sequences in the inspector. Only ICBM
+currently has sound, using the supplied sound pack. Events can finish over the
+last recorded frame. Enable Event cam to use the event's cinematic shots.
+Bundled model and sound
+credits are listed in [Third-party notices](THIRD_PARTY_NOTICES.md).
+
 ## Downloads
 
 Prebuilt jars are on

@@ -10,6 +10,8 @@ public final class EditorWindows {
         ErrorRecovery.run("Camera modes",pdx.dev.fbactors.camera.BoatCam::render);
         ErrorRecovery.run("Settings",pdx.dev.fbactors.settings.FbSettingsMenu::render);
         ErrorRecovery.run("Looks gallery",pdx.dev.fbactors.filters.LooksMenu::renderWindow);
+        ErrorRecovery.run("Events library",pdx.dev.fbactors.events.EventsMenu::renderWindow);
+        ErrorRecovery.run("Event placement",pdx.dev.fbactors.events.EventPlacement::render);
         ErrorRecovery.run("Effects editor",pdx.dev.fbactors.filters.EffectsMenu::renderWindow);
         ErrorRecovery.run("UI themes",pdx.dev.fbactors.settings.ThemeMakerMenu::render);
         ErrorRecovery.run("Subtitles editor",pdx.dev.fbactors.subtitle.SubtitleMenu::render);

@@ -17,9 +17,14 @@ public final class PearlLookPipeline implements AutoCloseable {
     private final GpuDevice device;
     private final GpuSampler sampler;
     private final GpuSampler nearest;
+    private final GpuSampler noiseSampler;
     private final Map<String, Program> programs = new HashMap<>();
     private final GpuTexture[] textures = new GpuTexture[3];
     private final GpuTextureView[] views = new GpuTextureView[3];
+    private final GpuTexture[] bombTextures=new GpuTexture[11];
+    private final GpuTextureView[] bombViews=new GpuTextureView[11];
+    private GpuTexture eventTexture;
+    private GpuTextureView eventView;
     private int width, height;
     private GpuFormat format;
 
@@ -29,6 +34,7 @@ public final class PearlLookPipeline implements AutoCloseable {
             FilterMode.LINEAR, FilterMode.LINEAR, 1, OptionalDouble.empty());
         nearest = device.createSampler(AddressMode.CLAMP_TO_EDGE, AddressMode.CLAMP_TO_EDGE,
             FilterMode.NEAREST, FilterMode.NEAREST, 1, OptionalDouble.empty());
+        noiseSampler=device.createSampler(AddressMode.REPEAT,AddressMode.REPEAT,FilterMode.LINEAR,FilterMode.LINEAR,1,OptionalDouble.of(0));
     }
 
     public void render(GpuTexture source, GpuTextureView destination, LookSettings look, float time) {
@@ -61,6 +67,32 @@ public final class PearlLookPipeline implements AutoCloseable {
             void main(){fragColor=texture(InSampler,texCoord);}
             """ : FilterGpuPipeline.source(filter));
         programs.put(key,cached); return cached;
+    }
+
+    public void renderEvent(GpuTexture source,GpuTextureView destination,GpuTextureView depth,Map<String,Float> uniforms) {
+        resize(source.getWidth(0),source.getHeight(0),source.getFormat());
+        var encoder=device.createCommandEncoder();
+        try(var input=device.createTextureView(source)) {
+            var look=new LookSettings();
+            draw(encoder,"copy",Map.of("InSampler",input),views[0],look,0,Map.of());
+            if(uniforms.getOrDefault("Type",0f)<1.5f && uniforms.getOrDefault("Progress",0f)>=uniforms.getOrDefault("Impact",1f) && uniforms.getOrDefault("ReducedResolution",0f)>.5f) {
+                if(eventView==null) {
+                    eventTexture=device.createTexture("Nuclear event half resolution",GpuTexture.USAGE_TEXTURE_BINDING|GpuTexture.USAGE_RENDER_ATTACHMENT,GpuFormat.RGBA16_FLOAT,(width+1)/2,(height+1)/2,1,1);
+                    eventView=device.createTextureView(eventTexture);
+                }
+                var reduced=new HashMap<>(uniforms);reduced.put("DeltaOutput",1f);
+                draw(encoder,"event_icbm",Map.of("InSampler",views[0],"SceneDepthSampler",depth),eventView,look,0,reduced);
+                reduced.put("ResolveX",1f);reduced.put("ResolveY",1f);
+                draw(encoder,"event_resolve",Map.of("InSampler",views[0],"SceneDepthSampler",depth,"EventSampler",eventView),destination,look,0,reduced);
+            } else draw(encoder,"event_icbm",Map.of("InSampler",views[0],"SceneDepthSampler",depth),destination,look,0,uniforms);
+            encoder.submit();
+        }
+    }
+    public void eventPreview(GpuTextureView destination,Map<String,Float> uniforms) {
+        resize(destination.texture().getWidth(0),destination.texture().getHeight(0),destination.texture().getFormat());
+        var encoder=device.createCommandEncoder();
+        draw(encoder,"event_icbm",Map.of("InSampler",views[0],"SceneDepthSampler",views[2]),destination,new LookSettings(),0,uniforms);
+        encoder.submit();
     }
     public static void validateCustom(String source) {
         try(var pipeline=new PearlLookPipeline(com.mojang.blaze3d.systems.RenderSystem.getDevice())) {
@@ -136,17 +168,50 @@ public final class PearlLookPipeline implements AutoCloseable {
         var program = program(filter, output.texture().getFormat());
         var uniforms = program.shader().floats().isEmpty() ? null : encoder.transientMemory()
             .uploadGpu(program.shader().uniforms(filter, look, time, overrides), 256, GpuBuffer.USAGE_UNIFORM);
+        for(String name:program.shader().samplers())if(name.startsWith("Bomb") || name.startsWith("Earth") && (overrides.getOrDefault("SpaceView",0f)>.5f || overrides.getOrDefault("Ending",0f)>.5f))bombTexture(name,overrides.getOrDefault("Type",0f)==0f,overrides.getOrDefault("CloudNoise",0f)>.5f);
         try (var pass = encoder.createRenderPass(() -> "Actors " + filter, output, Optional.empty())) {
             pass.setPipeline(program.pipeline());
             for (String name : program.shader().samplers()) {
                 var input = inputs.get(name);
+                if(input==null && name.startsWith("Earth") && overrides.getOrDefault("SpaceView",0f)<=.5f && overrides.getOrDefault("Ending",0f)<=.5f)input=views[0];
+                if(input==null && (name.startsWith("Bomb") || name.startsWith("Earth")))input=bombTexture(name,overrides.getOrDefault("Type",0f)==0f,overrides.getOrDefault("CloudNoise",0f)>.5f);
                 if (input == null && name.equals("EntityDepthSampler")) input = inputs.get("SceneDepthSampler");
                 if (input == null) throw new IllegalArgumentException("Missing sampler: " + name);
-                pass.setUniform(name, input, input.texture().getFormat() == GpuFormat.D32_FLOAT ? nearest : sampler);
+                pass.setUniform(name,input,name.equals("BombNormalSampler") && overrides.getOrDefault("CloudNoise",0f)>.5f?noiseSampler:
+                    input.texture().getFormat()==GpuFormat.D32_FLOAT || name.equals("BombMeshSampler")?nearest:sampler);
             }
             if (uniforms != null) pass.setUniform("LookUniforms", uniforms);
             pass.draw(3, 1, 0, 0);
         }
+    }
+
+    private GpuTextureView bombTexture(String name,boolean missile,boolean cloudNoise) {
+        var names=pdx.dev.fbactors.events.BombModel.SAMPLERS;int index=java.util.Arrays.asList(names).indexOf(name);
+        boolean earth=name.startsWith("Earth"),cloud=cloudNoise && name.equals("BombNormalSampler");
+        if(earth)index=java.util.Arrays.asList(pdx.dev.fbactors.events.EventEarth.SAMPLERS).indexOf(name);
+        if(index<0)throw new IllegalArgumentException("Unknown event texture: "+name);
+        int imageIndex=earth?index+1:cloud?1:index;index=cloud?10:earth?index+8:index+(missile?4:0);
+        String root=cloud?pdx.dev.fbactors.events.EventCloud.ROOT:earth?pdx.dev.fbactors.events.EventEarth.ROOT:missile?pdx.dev.fbactors.events.BombModel.ICBM_ROOT:pdx.dev.fbactors.events.BombModel.ROOT;
+        String materialFile=cloud?"noise.png":earth?pdx.dev.fbactors.events.EventEarth.IMAGES[imageIndex-1]:imageIndex>0?pdx.dev.fbactors.events.BombModel.IMAGES[imageIndex-1]:"";
+        if(bombViews[index]!=null)return bombViews[index];
+        int usage=GpuTexture.USAGE_COPY_DST|GpuTexture.USAGE_TEXTURE_BINDING;
+        var encoder=device.createCommandEncoder();
+        if(imageIndex==0) {
+            var info=pdx.dev.fbactors.events.BombModel.info(root);
+            bombTextures[index]=device.createTexture("Atomic bomb triangles",usage,GpuFormat.RGBA32_FLOAT,info.width(),info.height(),1,1);
+            encoder.writeToTexture(bombTextures[index],pdx.dev.fbactors.events.BombModel.mesh(root),0,0,0,0,info.width(),info.height());
+        } else {
+            int levels=pdx.dev.fbactors.events.BombModel.levels(root,materialFile);
+            for(int level=0;level<levels;level++) {
+                String file=materialFile.replace(".png",level==0?".png":"_"+level+".png");
+                try(var stream=pdx.dev.fbactors.events.BombModel.resource(root,file);
+                    var image=com.mojang.blaze3d.platform.NativeImage.read(stream)) {
+                    if(level==0)bombTextures[index]=device.createTexture("Event material mip chain",usage,GpuFormat.RGBA8_UNORM,image.getWidth(),image.getHeight(),1,levels);
+                    encoder.writeToTexture(bombTextures[index],image,level,0,0,0);
+                } catch(java.io.IOException error) {throw new IllegalStateException(error);}
+            }
+        }
+        encoder.submit();bombViews[index]=device.createTextureView(bombTextures[index]);return bombViews[index];
     }
 
     private void resize(int w, int h, GpuFormat sourceFormat) {
@@ -162,6 +227,7 @@ public final class PearlLookPipeline implements AutoCloseable {
     }
 
     private void closeTextures() {
+        if(eventView!=null)eventView.close();if(eventTexture!=null)eventTexture.close();eventView=null;eventTexture=null;
         for (int i = 0; i < textures.length; i++) {
             if (views[i] != null) views[i].close();
             if (textures[i] != null) textures[i].close();
@@ -171,9 +237,12 @@ public final class PearlLookPipeline implements AutoCloseable {
 
     @Override public void close() {
         closeTextures();
+        for(var view:bombViews)if(view!=null)view.close();for(var texture:bombTextures)if(texture!=null)texture.close();
+        java.util.Arrays.fill(bombViews,null);java.util.Arrays.fill(bombTextures,null);
         programs.values().forEach(p -> p.pipeline().close());
         programs.clear();
         sampler.close();
         nearest.close();
+        noiseSampler.close();
     }
 }

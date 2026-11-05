@@ -10,5 +10,5 @@ import pdx.dev.fbactors.filters.Looks;
 @Mixin(LevelRenderer.class)
 public class MixinLookWorldEnd {
     @Inject(method = {"renderLevel", "render"}, at = @At("TAIL"), require = 1)
-    private void fbactors$worldLook(CallbackInfo ci) { Looks.render(); }
+    private void fbactors$worldLook(CallbackInfo ci) { pdx.dev.fbactors.events.EventRenderer.render(); Looks.render(); }
 }

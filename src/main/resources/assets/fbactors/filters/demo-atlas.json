@@ -58,5 +58,15 @@
   "cinema_35mm",
   "noir",
   "desert_chrome",
-  "moonlight"
+  "moonlight",
+  "circuit_scan",
+  "plasma_field",
+  "spectral_echo",
+  "data_vortex",
+  "hex_shield",
+  "kaleidoscope",
+  "fpv_analog",
+  "action_camera",
+  "fpv_digital",
+  "uav_feed"
 ]

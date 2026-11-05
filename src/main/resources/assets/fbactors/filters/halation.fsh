@@ -35,5 +35,5 @@ vec3 finishColor(vec3 c,float grain){
 
 
 void main(){
-vec3 c=sampleLinear(texCoord);vec2 px=Radius/vec2(textureSize(InSampler,0));vec3 spill=vec3(0);float total=0.0;for(int y=-3;y<=3;y++)for(int x=-3;x<=3;x++){vec3 s=sampleLinear(texCoord+vec2(x,y)*px);float w=exp(-float(x*x+y*y)*0.25);spill+=s*smoothstep(Threshold,Threshold+0.25,luminance(s))*w;total+=w;}c=displayColor(c+spill/total*vec3(1.0,0.25,0.08)*Amount);fragColor=vec4(clamp(c,0.0,1.0),texture(InSampler,texCoord).a);
+vec3 c=sampleLinear(texCoord);vec2 px=Radius/vec2(textureSize(InSampler,0));vec3 spill=vec3(0);float total=0.0;for(int y=-3;y<=3;y++)for(int x=-3;x<=3;x++){vec3 s=sampleLinear(texCoord+vec2(x,y)*px);float w=exp(-float(x*x+y*y)*0.25);spill+=s*smoothstep(Threshold,Threshold+0.25,luminance(s))*w;total+=w;}c=displayColor(c+(1.0-c)*(1.0-exp(-spill/total*vec3(1.0,0.25,0.08)*Amount)));fragColor=vec4(clamp(c,0.0,1.0),texture(InSampler,texCoord).a);
 }

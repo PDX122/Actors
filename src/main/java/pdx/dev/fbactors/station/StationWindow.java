@@ -76,8 +76,22 @@ public final class StationWindow {
                             if (ImGui.beginTabItem("Edit",pdx.dev.fbactors.selftest.ReleaseVisualChecks.tabFlags("Edit"))) {
                                 try { renderEdit(replayServer); } finally { ImGui.endTabItem(); }
                             }
-                            if (ImGui.beginTabItem("Looks",pdx.dev.fbactors.selftest.ReleaseVisualChecks.tabFlags("Looks"))) {
-                                try { pdx.dev.fbactors.filters.LooksMenu.renderPicker(); } finally { ImGui.endTabItem(); }
+                            if (ImGui.beginTabItem("Visual")) {
+                                try {
+                                    if (ImGui.beginTabBar("##VisualTabs")) {
+                                        try {
+                                            if (ImGui.beginTabItem("Events")) {
+                                                try { pdx.dev.fbactors.events.EventsMenu.renderPicker(); } finally { ImGui.endTabItem(); }
+                                            }
+                                            if (ImGui.beginTabItem("Looks",pdx.dev.fbactors.selftest.ReleaseVisualChecks.tabFlags("Looks"))) {
+                                                try { pdx.dev.fbactors.filters.LooksMenu.renderPicker(); } finally { ImGui.endTabItem(); }
+                                            }
+                                            if (ImGui.beginTabItem("Look clips")) {
+                                                try { pdx.dev.fbactors.filters.EffectsMenu.renderContents(); } finally { ImGui.endTabItem(); }
+                                            }
+                                        } finally { ImGui.endTabBar(); }
+                                    }
+                                } finally { ImGui.endTabItem(); }
                             }
                         } finally { ImGui.endTabBar(); }
                     }

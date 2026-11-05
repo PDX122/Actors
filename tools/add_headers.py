@@ -10,7 +10,7 @@ Usage:
     python3 tools/add_headers.py --apply    # actually writes
 
 Idempotent: files already starting with the header marker are skipped.
-Deliberately NOT run while file-split work is in flight — run it once the
+Deliberately NOT run while file-split work is in flight - run it once the
 splits land so no merge has to care about header lines.
 """
 

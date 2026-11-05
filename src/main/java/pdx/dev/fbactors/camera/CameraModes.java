@@ -10,7 +10,7 @@ public final class CameraModes {
     public static BoatCam.Settings tuning(int mode) {
         return pdx.dev.fbactors.settings.FbSettings.settings().boatCamMode==mode?BoatCam.snapshot():CameraModesCatalog.recommended(mode);
     }
-    public static void select(int mode) { apply(CameraModesCatalog.recommended(mode)); CameraModesPreview.restart(); }
+    public static void select(int mode) { apply(CameraModesCatalog.recommended(CameraModesCatalog.available(mode)?mode:0)); CameraModesPreview.restart(); }
     public static void apply(BoatCam.Settings settings) {
         var s=pdx.dev.fbactors.settings.FbSettings.settings();
         s.boatCamMode=settings.mode(); s.boatCamDistance=(float)settings.distance(); s.boatCamHeight=(float)settings.height();
@@ -25,6 +25,7 @@ public final class CameraModes {
         int start=(int)Math.max(0,Math.min(99_999_999L,(long)actor.take.firstTick()+actor.offset()));
         int end=(int)Math.max(start+1L,Math.min(100_000_000L,(long)actor.take.lastTick()+actor.offset()+1));
         var entry=CameraModesCatalog.find(id);
+        if(entry!=null && !CameraModesCatalog.available(entry.mode())) { notice="Flying camera modes are temporarily unavailable.";return false; }
         var clip=CameraModeClips.create(id,actor.take.id,state.rival,start,end,entry==null?null:tuning(entry.mode()));
         if(clip==null) { notice="Two subjects needs a different second subject. Choose it in Camera modes."; return false; }
         BoatEdits.edit(() -> { track.clips.add(clip); BoatEdits.selected=clip.id; });

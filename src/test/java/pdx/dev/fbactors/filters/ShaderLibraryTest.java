@@ -53,7 +53,7 @@ class ShaderLibraryTest {
         try {
             ManagedShaders.use(store);
             assertNull(FilterCatalog.find("aurora"));assertNotNull(FilterCatalog.find(shader.id()));
-            assertEquals(60,FilterCatalog.builtins().size());assertEquals("signal",FilterCatalog.builtins().getFirst().id());
+            assertEquals(70,FilterCatalog.builtins().size());assertEquals("signal",FilterCatalog.builtins().getFirst().id());
             var look=new LookSettings();assertTrue(look.add(shader.id()));assertTrue(ActorEffectPlan.usesScreen(look));
             assertTrue(ActorEffectPlan.material(look).filters.isEmpty());
             store.delete(shader.id(),false);look.normalize();assertTrue(look.filters.isEmpty());

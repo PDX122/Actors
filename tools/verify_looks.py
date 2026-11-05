@@ -11,8 +11,8 @@ def verify(live=True):
     assets = ROOT / "src/main/resources/assets/fbactors/filters"
     catalog = json.loads((assets / "catalog.json").read_text())
     ids = [entry["id"] for entry in catalog]
-    if len(ids) != len(set(ids)) or len(ids) != 60:
-        failures.append("Look catalog must contain 60 distinct filters")
+    if len(ids) != len(set(ids)) or len(ids) != 70:
+        failures.append("Look catalog must contain 70 distinct filters")
     if any(entry["origin"] != "Actors" for entry in catalog):
         failures.append("Every look must be an original Actors shader")
     if {p.stem for p in assets.glob("*.fsh")} != set(ids + ["compose", "actor_mosaic", "actor_extent", "actor_source", "actor_composite"]):

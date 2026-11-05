@@ -86,7 +86,9 @@ public final class Effects {
 
     public static void add(String filter, int tick) { add(filter, tick, null); }
 
-    public static void add(String filter, int tick, UUID actor) {
+    public static void add(String filter, int tick, UUID actor) { add(filter,tick,actor,null); }
+
+    public static void add(String filter, int tick, UUID actor, LookSettings initial) {
         var track = timeline();
         if (actor == null && track.locked || track.clips.size() >= 256 || FilterCatalog.find(filter) == null) return;
         pdx.dev.fbactors.debug.DragDiag.log("clip created: filter=%s tick=%d actor=%s",
@@ -97,7 +99,8 @@ public final class Effects {
         clip.start = Math.max(0, Math.min(99_999_900, tick));
         clip.fadeIn = clip.fadeOut = 0;
         clip.end = clip.start + 100;
-        clip.look.add(filter);
+        if(initial==null) clip.look.add(filter);
+        else { clip.look=initial.copy(); clip.look.normalize(); }
         track.clips.add(clip);
         selected = clip.id;
         changed();

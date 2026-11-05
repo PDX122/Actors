@@ -6,27 +6,54 @@ public final class CameraModePreviewScene {
     private CameraModePreviewScene() {}
     public static Point subject(double seconds) { return new Point(Math.sin(seconds*.55)*4,0,seconds*2); }
     public static boolean ice(int mode) { return mode>=14 && mode<=16; }
+    private static boolean airborne(int mode) { return CameraModesCatalog.flight(mode) || CameraModesCatalog.fpv(mode); }
     public static boolean horse(int mode) { return mode>=17 && mode<=19; }
     public static Point subject(double seconds,int mode) {
         var p=subject(seconds);
+        if(airborne(mode)) return new Point(p.x()*2,12+Math.sin(seconds*.4)*5,p.z()*3);
         return ice(mode)?new Point(p.x()*2,0,p.z()*4):horse(mode)?new Point(p.x()*1.3,0,p.z()*1.8):p;
     }
     public static double heading(double seconds,int mode) {
-        double scaleX=ice(mode)?2:horse(mode)?1.3:1,scaleZ=ice(mode)?4:horse(mode)?1.8:1;
+        double scaleX=ice(mode)?2:horse(mode)?1.3:airborne(mode)?2:1,scaleZ=ice(mode)?4:horse(mode)?1.8:airborne(mode)?3:1;
         return Math.toDegrees(Math.atan2(-Math.cos(seconds*.55)*.11*scaleX,.1*scaleZ));
     }
-    public static double eye(int mode) { return ice(mode)?1.15:horse(mode)?2.55:1.62; }
+    public static double eye(int mode) { return ice(mode)?1.15:horse(mode)?2.55:airborne(mode)?.4:1.62; }
     public static Point partner(double seconds) { var p=subject(seconds); return new Point(p.x()+3+Math.sin(seconds*.65)*1.5,0,p.z()+2); }
     public static double heading(double seconds) { return Math.toDegrees(Math.atan2(-Math.cos(seconds*.55)*.11,.1)); }
+    public static double bodyHeading(double seconds,int mode) { return heading(seconds,mode)+(ice(mode)?Math.sin(seconds*.7)*18:0); }
     public static BoatCameraModel.Shot camera(BoatCam.Settings tuning,double seconds,double aspect) {
+        double time=Math.max(0,seconds),lag=CameraModesCatalog.uav(tuning.mode())?Math.max(.8,tuning.lag()):tuning.lag();
+        if(lag<=0 || time==0) return desired(tuning,time,aspect);
+        double start=Math.max(0,time-4),step=(time-start)/60;
+        var previous=desired(tuning,start,aspect);var result=previous;
+        UavCameraModel.State uav=null;
+        for(int i=0;i<=60;i++) {
+            double t=start+step*i;
+            var next=desired(tuning,t,aspect);
+            if(CameraModesCatalog.uav(tuning.mode())) {
+                var p=subject(t,tuning.mode());
+                uav=UavCameraModel.step(uav,i==0?null:previous,next,p.x(),p.y()+CameraModeModel.aimHeight(eye(tuning.mode())),p.z(),i==0?Double.NaN:step*20,lag);
+                result=uav.view();
+            } else {
+                var damped=BoatCam.smooth(i==0?null:result,i==0?null:previous,next,step*20,lag);
+                result=CameraModesCatalog.pov(tuning.mode()) || CameraModesCatalog.fpv(tuning.mode())
+                    ?new BoatCameraModel.Shot(next.x(),next.y(),next.z(),damped.yaw(),damped.pitch(),damped.roll(),next.fov()):damped;
+            }
+            previous=next;
+        }
+        return result;
+    }
+    private static BoatCameraModel.Shot desired(BoatCam.Settings tuning,double seconds,double aspect) {
         var p=subject(seconds,tuning.mode());
-        double vx=Math.cos(seconds*.55)*.11*(ice(tuning.mode())?2:horse(tuning.mode())?1.3:1),vz=.1*(ice(tuning.mode())?4:horse(tuning.mode())?1.8:1);
+        double vx=Math.cos(seconds*.55)*.11*(ice(tuning.mode())?2:horse(tuning.mode())?1.3:airborne(tuning.mode())?2:1),vz=.1*(ice(tuning.mode())?4:horse(tuning.mode())?1.8:airborne(tuning.mode())?3:1);
         double yaw=heading(seconds,tuning.mode());
         if(tuning.mode()==7) {
             var second=partner(seconds);
             return BoatCameraModel.battle(p.x(),CameraModeModel.aimHeight(1.62)-.6,p.z(),second.x(),CameraModeModel.aimHeight(1.62)-.6,second.z(),Math.toDegrees(Math.atan2(-vx,vz)),tuning.distance(),tuning.height(),tuning.fov(),aspect);
         }
-        return CameraModeModel.shot(p.x(),0,p.z(),yaw,vx,vz,Math.sin(seconds*.55)*2,seconds,eye(tuning.mode()),tuning);
+        double vy=airborne(tuning.mode())?Math.cos(seconds*.4)*.1:0;
+        double pitch=CameraModesCatalog.fpv(tuning.mode())?25+Math.sin(seconds*.4)*12:-Math.toDegrees(Math.atan2(vy,Math.hypot(vx,vz)));
+        return CameraModeModel.shot(p.x(),p.y(),p.z(),yaw,pitch,vx,vy,vz,Math.sin(seconds*.55)*2,seconds,eye(tuning.mode()),tuning);
     }
     public static final class View {
         private final BoatCameraModel.Shot camera;

@@ -36,6 +36,10 @@ public final class BoatTextures {
     }
     public static void end(boolean previous) { active.set(previous); }
     public static boolean active() { return active.get(); }
+    public static String preview(String original) {
+        boolean previous=active.get();active.set(true);
+        try { return texture(original); } finally { active.set(previous); }
+    }
 
     public static String texture(String original) {
         if (!active() || !original.startsWith("minecraft:textures/entity/")

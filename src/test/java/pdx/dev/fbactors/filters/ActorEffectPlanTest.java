@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ActorEffectPlanTest {
     @Test void spatialEffectsUseTheLitActorWhileGradesKeepTheirMaterials() {
-        for (String id : new String[]{"ascii", "tessera", "digital_glitch", "hologram", "arcade", "halftone", "neon_wire", "pixel_sort", "codec_smear", "signal_rot", "bitcrush"}) {
+        for (String id : new String[]{"ascii", "tessera", "digital_glitch", "hologram", "arcade", "halftone", "neon_wire", "pixel_sort", "codec_smear", "signal_rot", "bitcrush", "circuit_scan", "plasma_field", "spectral_echo", "data_vortex", "hex_shield", "kaleidoscope", "fpv_analog", "action_camera", "fpv_digital", "uav_feed"}) {
             var look = new LookSettings(); look.add(id);
             assertTrue(ActorEffectPlan.usesScreen(look), id);
             assertTrue(ActorEffectPlan.material(look).filters.isEmpty(), id);

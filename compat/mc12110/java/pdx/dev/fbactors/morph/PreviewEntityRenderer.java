@@ -12,6 +12,22 @@ import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
 import net.minecraft.client.renderer.state.CameraRenderState;
 
 final class PreviewEntityRenderer extends GuiEntityRenderer {
+    private static net.minecraft.client.renderer.entity.EntityRenderDispatcher sharedDispatcher;
+    private static Object sharedModels;
+    private static net.minecraft.client.renderer.entity.EntityRenderDispatcher previewDispatcher(Minecraft client) {
+        Object models=client.getResourceManager().listPacks().toList();
+        if(sharedDispatcher==null || !models.equals(sharedModels)) {
+        var created = new net.minecraft.client.renderer.entity.EntityRenderDispatcher(client, client.getTextureManager(),
+            client.getItemModelResolver(), client.getItemRenderer(), client.getMapRenderer(),
+            client.getBlockRenderer(), client.getAtlasManager(), client.font, client.options,
+            client.getModelManager().entityModels(),
+            pdx.dev.fbactors.camera.CameraPreviewAssets.equipment(client.getEntityRenderDispatcher(),net.minecraft.client.resources.model.EquipmentAssetManager.class),
+            client.playerSkinRenderCache());
+        created.onResourceManagerReload(client.getResourceManager());
+            sharedDispatcher=created;sharedModels=models;
+        }
+        return sharedDispatcher;
+    }
     private final EntityRenderDispatcher dispatch;
     private final SubmitNodeStorage storage;
     private final FeatureRenderDispatcher features;
@@ -23,13 +39,7 @@ final class PreviewEntityRenderer extends GuiEntityRenderer {
         var mainBuffers = MultiBufferSource.immediate(mainBuilder);
         var crumblingBuilder = new com.mojang.blaze3d.vertex.ByteBufferBuilder(4096);
         var crumblingBuffers = MultiBufferSource.immediate(crumblingBuilder);
-        var dispatch = new EntityRenderDispatcher(client, client.getTextureManager(),
-            client.getItemModelResolver(), client.getItemRenderer(), client.getMapRenderer(),
-            client.getBlockRenderer(), client.getAtlasManager(), client.font, client.options,
-            client.getModelManager().entityModels(),
-            new net.minecraft.client.resources.model.EquipmentAssetManager(),
-            client.playerSkinRenderCache());
-        dispatch.onResourceManagerReload(client.getResourceManager());
+        var dispatch = previewDispatcher(client);
         var storage = new SubmitNodeStorage();
         var features = new FeatureRenderDispatcher(storage, client.getBlockRenderer(), mainBuffers,
             client.getAtlasManager(), new net.minecraft.client.renderer.OutlineBufferSource(),

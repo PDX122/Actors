@@ -13,7 +13,7 @@ import java.util.UUID;
 
 public final class BoatMenu {
     private static final ImBoolean OPEN = new ImBoolean(false);
-    private static int page, from, to;
+    private static int page, from, to, libraryPage;
     private static String shotGroup="All shots";
     private static final imgui.moulberry90.type.ImString SEARCH=new imgui.moulberry90.type.ImString(128);
     private static final String[] PAGES = {"Modes", "Timeline", "Boat handling"};
@@ -62,9 +62,10 @@ public final class BoatMenu {
                 if(SkinPickerChrome.button("Done",true,80)) OPEN.set(false);
             }
         } finally { ImGui.end(); ImGui.popStyleVar(4); SkinPickerChrome.pop(); }
-        if(!OPEN.get()) { FbSettings.settings().save(); BoatStudioState.flush(true); }
+        if(!OPEN.get()) { CameraPreviewNative.close(); FbSettings.settings().save(); BoatStudioState.flush(true); }
     }
     private static String label(UUID id) {
+        if(BoatSubjects.SPECTATED.equals(id)) return "Current spectated subject";
         if(id==null) return "Choose a subject...";
         var actor=FlashbackActors.ACTORS.byUuid(id);
         if(actor!=null) return actor.displayName();
@@ -77,6 +78,7 @@ public final class BoatMenu {
         ImGui.textUnformatted(caption);
         ImGui.setNextItemWidth(-1);
         if(ImGui.beginCombo("##"+caption,label(chosen))) {
+            if(!rival && ImGui.selectable("Current spectated subject",BoatSubjects.SPECTATED.equals(chosen))) choose(BoatSubjects.SPECTATED,false);
             var mc=Minecraft.getInstance();
             var seen=new java.util.HashSet<UUID>();
             for(var actor:FlashbackActors.ACTORS.actors()) {
@@ -102,9 +104,12 @@ public final class BoatMenu {
     }
     private static void camera() {
         var s=FbSettings.settings();
+        if(!CameraModesCatalog.available(s.boatCamMode)) CameraModes.select(0);
+        if(!CameraModesCatalog.GROUPS.contains(shotGroup)) shotGroup="All shots";
+        CameraPreviewNative.prepare(s.boatCamMode);
         float width=ImGui.getContentRegionAvailX();
         boolean beside=width>=430;
-        float libraryWidth=beside?Math.max(160,width*.43f):width;
+        float libraryWidth=beside?Math.max(180,width*.32f):width;
         float height=Math.max(1,ImGui.getContentRegionAvailY());
         boolean library=ImGui.beginChild("##CameraModeLibrary",libraryWidth,beside?height:Math.max(110,height*.45f),false);
         try {
@@ -112,20 +117,24 @@ public final class BoatMenu {
                 ImGui.textUnformatted("Shot library");
                 ImGui.setNextItemWidth(-1);
                 if(ImGui.beginCombo("##CameraShotGroup",shotGroup)) {
-                    try { for(String group:CameraModesCatalog.GROUPS) if(ImGui.selectable(group,shotGroup.equals(group))) shotGroup=group; }
+                    try { for(String group:CameraModesCatalog.GROUPS) if(ImGui.selectable(group,shotGroup.equals(group))) { shotGroup=group; libraryPage=0; } }
                     finally { ImGui.endCombo(); }
                 }
                 ImGui.setNextItemWidth(-1);
-                ImGui.inputTextWithHint("##CameraShotSearch","Search shots...",SEARCH);
-                ImGui.textDisabled("Drag a shot onto an actor");
-                int matches=0;
+                if(ImGui.inputTextWithHint("##CameraShotSearch","Search shots...",SEARCH)) libraryPage=0;
+                ImGui.textDisabled("Hover to play / drag onto an actor");
+                String query=SEARCH.get().trim().toLowerCase(java.util.Locale.ROOT);
+                var matches=CameraModesCatalog.available().stream()
+                    .filter(entry -> shotGroup.equals("All shots") || shotGroup.equals(CameraModesCatalog.group(entry.mode())))
+                    .filter(entry -> query.isEmpty() || (entry.name()+" "+entry.description()+" "+CameraModesCatalog.group(entry.mode())).toLowerCase(java.util.Locale.ROOT).contains(query)).toList();
+                int pages=Math.max(1,(matches.size()+CameraModesPreview.CARDS_PER_PAGE-1)/CameraModesPreview.CARDS_PER_PAGE);
+                libraryPage=Math.min(libraryPage,pages-1);
+                if(ImGui.smallButton("Previous") && libraryPage>0) libraryPage--;
+                ImGui.sameLine(); ImGui.text((libraryPage+1)+" / "+pages); ImGui.sameLine();
+                if(ImGui.smallButton("Next") && libraryPage+1<pages) libraryPage++;
                 int columns=libraryWidth>=190?2:1,index=0;
                 float tile=Math.max(1,(ImGui.getContentRegionAvailX()-(columns-1)*6)/columns);
-                for(var entry:CameraModesCatalog.ENTRIES) {
-                    if(!shotGroup.equals("All shots") && !shotGroup.equals(CameraModesCatalog.group(entry.mode()))) continue;
-                    String query=SEARCH.get().trim().toLowerCase(java.util.Locale.ROOT);
-                    if(!query.isEmpty() && !(entry.name()+" "+entry.description()+" "+CameraModesCatalog.group(entry.mode())).toLowerCase(java.util.Locale.ROOT).contains(query)) continue;
-                    matches++;
+                for(var entry:matches.subList(libraryPage*CameraModesPreview.CARDS_PER_PAGE,Math.min(matches.size(),(libraryPage+1)*CameraModesPreview.CARDS_PER_PAGE))) {
                     if(index++%columns!=0) ImGui.sameLine();
                     ImGui.pushID(entry.id()); ImGui.beginGroup();
                     try {
@@ -137,7 +146,7 @@ public final class BoatMenu {
                         dragSource(entry); ImGui.setItemTooltip(entry.description());
                     } finally { ImGui.endGroup(); ImGui.popID(); }
                 }
-                if(matches==0) ImGui.textWrapped("No shots match. Try another group or search.");
+                if(matches.isEmpty()) ImGui.textWrapped("No shots match. Try another group or search.");
             }
         } finally { ImGui.endChild(); }
         if(beside) ImGui.sameLine();
@@ -150,7 +159,8 @@ public final class BoatMenu {
                 float previewWidth=ImGui.getContentRegionAvailX();
                 CameraModesPreview.draw("##CameraModePreview",BoatCam.snapshot(),previewWidth,Math.max(140,previewWidth*9/16),true);
                 dragSource(entry);
-                ImGui.textDisabled(CameraModePreviewScene.ice(entry.mode())?"Ice circuit / boat and rider":CameraModePreviewScene.horse(entry.mode())?"Trail / horse and rider":"Terrain / walking subject");
+                CameraModesPreview.playback();
+                ImGui.textDisabled(CameraPreviewNative.animationLabel());
                 ImGui.textWrapped(entry.description());
                 section("Subjects");
                 targetPicker("Subject",false);
@@ -181,22 +191,40 @@ public final class BoatMenu {
     public static void cameraControls() {
         var s=FbSettings.settings();
         ImGui.textDisabled("FRAMING");
-        if(s.boatCamMode!=3) {
-            s.boatCamDistance=slider("Distance",s.boatCamDistance,.5f,24);
-            s.boatCamHeight=slider("Height",s.boatCamHeight,.3f,12);
+        if(!CameraModesCatalog.pov(s.boatCamMode) && !CameraModesCatalog.fpv(s.boatCamMode)) {
+            s.boatCamDistance=slider("Distance",s.boatCamDistance,.5f,CameraModesCatalog.uav(s.boatCamMode)?256:24);
+            s.boatCamHeight=slider("Height",s.boatCamHeight,.3f,CameraModesCatalog.uav(s.boatCamMode)?256:12);
         }
-        s.boatCamFov=slider("Field of view",s.boatCamFov,30,110);
-        if(s.boatCamMode==1 || s.boatCamMode==8 || s.boatCamMode==16 || s.boatCamMode>=17 && s.boatCamMode<=19) s.boatCamSide=slider("Side offset",s.boatCamSide,-12,12);
+        s.boatCamFov=slider("Field of view",s.boatCamFov,CameraModesCatalog.uav(s.boatCamMode)?2:30,110);
+        if(CameraModesCatalog.uav(s.boatCamMode)) ImGui.textWrapped("The airframe keeps flying above the terrain. Jumps stay inside the tracking gate while the gimbal catches up smoothly. Pair with UAV Recon Feed in Looks / Camera.");
+        if(s.boatCamMode==1 || s.boatCamMode==8 || s.boatCamMode==16 || CameraModesCatalog.flight(s.boatCamMode) || s.boatCamMode>=17 && s.boatCamMode<=19) s.boatCamSide=slider("Side offset",s.boatCamSide,-12,12);
         if((s.boatCamMode>=10 && s.boatCamMode<=13) || s.boatCamMode==21 || s.boatCamMode==22) ImGui.textWrapped("Motion eases over the first 8 seconds of the clip, then holds. Distance and height set the framing range.");
         if(s.boatCamMode==23) ImGui.textWrapped("Rises over eight seconds, then keeps orbiting. Orbit speed controls direction and pace.");
+        if(s.boatCamMode>=24 && s.boatCamMode<=27) ImGui.textWrapped("Continuous replay-timed motion. Orbit speed controls pace and direction.");
+        if(s.boatCamMode==28) ImGui.textWrapped("Rushes in over two seconds, then holds the close frame.");
+        if(s.boatCamMode==29) ImGui.textWrapped("Dives over eight seconds, then holds a low chase frame.");
+        if(CameraModesCatalog.fpv(s.boatCamMode)) {
+            s.boatCamOrbitSpeed=slider("Camera mount tilt",s.boatCamOrbitSpeed,0,60);
+            s.boatCamBank=slider("Maximum flight bank",s.boatCamBank,0,85);
+            s.boatCamSmoothing=slider("Rotation damping",s.boatCamSmoothing,0,.25f);
+            ImGui.textWrapped("The camera stays mounted to the pilot. Tilt rotates with the aircraft. Lens angle stays fixed as speed changes.");
+            ImGui.textWrapped("Pair with FPV Analog, Action Camera Wide or Digital FPV in Looks / Camera.");
+            return;
+        }
         section("Motion");
-        s.boatCamSmoothing=slider("Smoothing",s.boatCamSmoothing,0,1);
-        if(s.boatCamMode==2 || s.boatCamMode==23) s.boatCamOrbitSpeed=slider("Orbit speed",s.boatCamOrbitSpeed,-90,90);
+        s.boatCamSmoothing=slider("Smoothing",s.boatCamSmoothing,CameraModesCatalog.uav(s.boatCamMode)?.8f:0,1);
+        if(s.boatCamMode==2 || s.boatCamMode==23 || (s.boatCamMode>=24 && s.boatCamMode<=27 || s.boatCamMode==35 || CameraModesCatalog.uav(s.boatCamMode))) s.boatCamOrbitSpeed=slider("Orbit speed",s.boatCamOrbitSpeed,-90,90);
         if((s.boatCamMode<7 && s.boatCamMode!=3 && s.boatCamMode!=5 || s.boatCamMode>=14 && s.boatCamMode<=20) && ImGui.collapsingHeader("Advanced motion")) {
             if(s.boatCamMode==0 || s.boatCamMode==1 || s.boatCamMode==6 || s.boatCamMode==14 || s.boatCamMode==17 || s.boatCamMode==19 || s.boatCamMode==20)
                 s.boatCamLookAhead=slider("Look ahead",s.boatCamLookAhead,0,12);
             if(s.boatCamMode!=19) s.boatCamSpeedFov=slider("Speed zoom",s.boatCamSpeedFov,0,20);
             if(s.boatCamMode==0 || s.boatCamMode==1 || s.boatCamMode==4 || s.boatCamMode==6 || s.boatCamMode==14 || s.boatCamMode==17) s.boatCamBank=slider("Turn banking",s.boatCamBank,0,30);
+        }
+        if(s.boatCamMode>=25 && s.boatCamMode<=27) s.boatCamBank=slider("Motion banking",s.boatCamBank,0,30);
+        if(CameraModesCatalog.flight(s.boatCamMode)) {
+            s.boatCamLookAhead=slider("Flight look ahead",s.boatCamLookAhead,0,12);
+            s.boatCamSpeedFov=slider("Flight speed zoom",s.boatCamSpeedFov,0,20);
+            s.boatCamBank=slider("Flight banking",s.boatCamBank,0,30);
         }
         section("Obstacles");
         if(ImGui.checkbox("Avoid walls and ceilings",s.boatCamCollision)) { s.boatCamCollision=!s.boatCamCollision; BoatCam.reset(); }

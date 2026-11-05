@@ -20,6 +20,9 @@ public final class LooksMenu {
     private static java.util.UUID target;
     private static String dragPreviewLoggedId;
     private static boolean dragPreviewArmed;
+    private static String auditionId;
+    private static LookSettings audition;
+    private static boolean livePreview=true;
     private LooksMenu() {}
 
     public static void open() { OPEN.set(true); }
@@ -29,12 +32,12 @@ public final class LooksMenu {
     }
 
     public static void renderWindow() {
-        if(!OPEN.get()) return;
+        if(!OPEN.get()) { Looks.stopPreview(); return; }
         var viewport=ImGui.getMainViewport();
         ImGui.setNextWindowSize(Math.min(720,viewport.getWorkSizeX()-32),Math.min(540,viewport.getWorkSizeY()-32),ImGuiCond.Always);
         ImGui.setNextWindowBgAlpha(1);pdx.dev.fbactors.ui.SkinPickerChrome.push();
         boolean visible=ImGui.begin("Looks gallery###ActorLooks",OPEN,imgui.moulberry90.flag.ImGuiWindowFlags.NoResize);
-        try {if(visible) renderPicker();}finally{ImGui.end();pdx.dev.fbactors.ui.SkinPickerChrome.pop();}
+        try {if(visible) renderPicker();else Looks.stopPreview();}finally{ImGui.end();pdx.dev.fbactors.ui.SkinPickerChrome.pop();}
     }
 
     public static void renderClip(EffectClip clip, String section) {
@@ -225,6 +228,17 @@ public final class LooksMenu {
         ImGui.textDisabled(ManagedShaders.custom(entry.id())?"YOUR SHADER":entry.category().toUpperCase(java.util.Locale.ROOT));
         ImGui.spacing();detailPreview(entry,Math.max(1,ImGui.getContentRegionAvailX()));
         ImGui.spacing();ImGui.textWrapped(entry.description());ImGui.spacing();
+        if(!entry.id().equals(auditionId)) { auditionId=entry.id(); audition=new LookSettings(); audition.add(entry.id()); }
+        if(ImGui.checkbox("Preview live on whole scene",livePreview)) { livePreview=!livePreview; if(!livePreview) Looks.stopPreview(); }
+        if(CameraTelemetry.supports(entry.id())) {
+            for(var param:FilterCatalog.params(entry.id())) {
+                float[] value={audition.parameter(entry.id(),param)};
+                ImGui.setNextItemWidth(-1);
+                if(ImGui.sliderFloat(param.label(),value,param.min(),param.max(),param.max()>100?"%.0f":"%.2f")) audition.parameter(entry.id(),param,value[0]);
+            }
+            ImGui.textWrapped("Speed, altitude, heading and climb use the subject's replay motion. Battery and link are editable display values. Clock uses replay time.");
+        }
+        if(livePreview) Looks.preview(audition);
         var replay=com.moulberry.flashback.Flashback.getReplayServer();
         ImGui.beginDisabled(replay==null);
         try {
@@ -240,7 +254,9 @@ public final class LooksMenu {
             }
             boolean locked=actor==null?Effects.timeline().locked:actor.take.locked;
             ImGui.beginDisabled(locked);
-            try {if(pdx.dev.fbactors.ui.SkinPickerChrome.button("Add effect",true,ImGui.getContentRegionAvailX()))Effects.add(entry.id(),Math.max(0,pdx.dev.fbactors.FlashbackActors.replayTick()),target);}
+            try {if(pdx.dev.fbactors.ui.SkinPickerChrome.button("Add effect with these settings",true,ImGui.getContentRegionAvailX())) {
+                Effects.add(entry.id(),Math.max(0,pdx.dev.fbactors.FlashbackActors.replayTick()),target,audition);
+            }}
             finally{ImGui.endDisabled();}
             if(locked)ImGui.textWrapped("Unlock the target track to add effects.");
         }finally{ImGui.endDisabled();}

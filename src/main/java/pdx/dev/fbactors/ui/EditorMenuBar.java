@@ -31,8 +31,9 @@ public final class EditorMenuBar {
                 if (ImGui.menuItem("About Flashback Actors...")) AboutWindow.open();
             } finally { ImGui.endMenu(); }
         }
-        if (ImGui.beginMenu("Effects##FbActorsEffects")) {
+        if (ImGui.beginMenu("Visual##FbActorsVisual")) {
             try {
+                if (ImGui.menuItem("Events library...")) pdx.dev.fbactors.events.EventsMenu.open();
                 LooksMenu.renderMenuItem();
                 if (ImGui.menuItem("Edit look clip...")) EffectsMenu.open();
             } finally { ImGui.endMenu(); }

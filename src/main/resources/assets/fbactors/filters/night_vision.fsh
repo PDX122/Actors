@@ -13,9 +13,9 @@ void main(){
     vec3 c=clamp(original.rgb,0.0,1.0);
     float l=luma(c);
     vec2 size=vec2(textureSize(InSampler,0));
-    float signal=pow(clamp(l*Gain,0.0,1.0),0.65);
-    float scan=0.93+0.07*cos(gl_FragCoord.y*3.14159265);
-    c=mix(vec3(0.005,0.025,0.008),vec3(0.45,1.0,0.12),signal)*scan;
-    c+=(hash(gl_FragCoord.xy+floor(Time*12.0))-0.5)*0.025;
+    float signal=pow(1.0-exp(-l*Gain*1.35),0.75);
+    float scan=0.985+0.015*cos(gl_FragCoord.y*3.14159265);
+    c=mix(vec3(0.005,0.025,0.008),vec3(0.62,0.94,0.54),signal)*scan;
+    c+=(hash(gl_FragCoord.xy+floor(Time*12.0))-0.5)*0.01;
     fragColor=vec4(clamp(c,0.0,1.0),original.a);
 }

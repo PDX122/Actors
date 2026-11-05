@@ -63,6 +63,23 @@ public final class CameraPreviewMesh {
         }
         return (cycles*cycleDistance+distance)*2.8;
     }
+    public static List<Face> tree(long leaves,long trunk,Point origin,int detail) {
+        var out=new ArrayList<Face>();
+        double variation=Math.floorMod((int)origin.z()/12,3)*5;
+        if(trunk!=0 && detail<8) cube(out,trunk,origin,0,0,0,0,10,68+variation,10,0,0,0,0,0,0);
+        if(leaves!=0) {
+            cube(out,leaves,origin,0,0,44+variation,0,68,28,68,0,0,0,0,0,0);
+            if(detail<4) {
+                cube(out,leaves,origin,0,4,72+variation,-3,46,20,46,0,0,0,0,0,0);
+                cube(out,leaves,origin,0,4,92+variation,-3,24,12,24,0,0,0,0,0,0);
+            }
+        }
+        return out.stream().map(f -> {
+            int light=lighting(f.vertices())&255;
+            int tint=f.texture()==trunk?0xff74899a:0xff000000 | light*100/255 | (light*151/255)<<8 | (light*92/255)<<16;
+            return new Face(f.texture(),f.vertices().stream().map(v -> new Vertex(v.point(),v.u()/64,v.v()/64)).toList(),tint);
+        }).toList();
+    }
     public static int lighting(List<Vertex> vertices) {
         var a=vertices.get(0).point(); var b=vertices.get(1).point(); var c=vertices.get(2).point();
         double ux=b.x()-a.x(),uy=b.y()-a.y(),uz=b.z()-a.z();

@@ -51,6 +51,7 @@ public final class BoatTimeline {
         if (!enabled || !Double.isFinite(tick)) return null;
         Clip result = null;
         for (var c : clips) if (c.enabled && c.target != null && c.settings != null
+            && CameraModesCatalog.available(c.settings.mode())
             && tick >= c.start && tick < c.end && (result == null || c.start >= result.start)) result = c;
         return result;
     }

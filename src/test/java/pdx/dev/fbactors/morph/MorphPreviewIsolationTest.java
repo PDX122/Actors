@@ -192,7 +192,7 @@ class MorphPreviewIsolationTest {
                 () -> compat + " must not share world buffers or dispatcher");
             String sub = stripComments(read(root,
                 "compat/" + compat + "/java/pdx/dev/fbactors/morph/PreviewEntityRenderer.java"));
-            assertTrue(sub.contains("new EntityRenderDispatcher("),
+            assertTrue(sub.contains("new net.minecraft.client.renderer.entity.EntityRenderDispatcher("),
                 () -> compat + " must build a private EntityRenderDispatcher");
             assertTrue(sub.contains("new SubmitNodeStorage()"),
                 () -> compat + " must build a private SubmitNodeStorage");
@@ -218,8 +218,10 @@ class MorphPreviewIsolationTest {
                 () -> compat + " must build a private EntityRenderDispatcher");
             assertTrue(src.contains("GuiEntityRenderer(dispatch)"),
                 () -> compat + " must wire the renderer to the private dispatcher");
-            assertFalse(src.contains("getEntityRenderDispatcher()"),
-                () -> compat + " must not share the world's dispatcher");
+            assertFalse(src.contains("dispatch = client.getEntityRenderDispatcher()"),
+                () -> compat + " must not render through the world's dispatcher");
+            assertTrue(src.contains("CameraPreviewAssets.equipment(client.getEntityRenderDispatcher()"),
+                () -> compat + " must reuse loaded equipment assets for saddles and wings");
         }
     }
 
@@ -246,7 +248,7 @@ class MorphPreviewIsolationTest {
                 () -> compat + " must own the staged vertex buffers used by preview features");
             assertTrue(bridge.contains("new net.minecraft.client.renderer.feature.FeatureRenderDispatcher("));
             assertTrue(bridge.contains("renderer.prepare(draw, output, previewFeatures, 1)"));
-            String render = methodBody(bridge, compat.equals("mc263") ? "MorphThumbnail renderNow(" : "MorphThumbnail render(");
+            String render = methodBody(bridge, "MorphThumbnail renderNow(");
             assertTrue(render.contains("finally {") && render.contains("previewBuffers.endFrame()"));
             String close = methodBody(bridge, compat.equals("mc263") ? "boolean releaseAfterDraw(" : "public void close()");
             assertTrue(close.contains("previewFeatures.close()") && close.contains("previewBuffers.close()"));

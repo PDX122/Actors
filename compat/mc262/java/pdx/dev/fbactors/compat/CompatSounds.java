@@ -9,6 +9,17 @@ public final class CompatSounds {
     private CompatSounds() {
     }
 
+    public static SoundEvent registerEvent(String name) {
+        var id=Identifier.fromNamespaceAndPath("fbactors",name);
+        return net.minecraft.core.Registry.register(BuiltInRegistries.SOUND_EVENT,id,SoundEvent.createVariableRangeEvent(id));
+    }
+
+    public static net.minecraft.client.resources.sounds.Sound eventFile(String path) {
+        return new net.minecraft.client.resources.sounds.Sound(Identifier.fromNamespaceAndPath("fbactors",path),
+            net.minecraft.util.valueproviders.ConstantFloat.of(1),net.minecraft.util.valueproviders.ConstantFloat.of(1),1,
+            net.minecraft.client.resources.sounds.Sound.Type.FILE,false,false,16);
+    }
+
     @Nullable
     public static SoundEvent resolveSound(String id) {
         if (id == null || id.isEmpty()) {

@@ -44,6 +44,14 @@ public final class AboutWindow {
                     ImGui.spacing();
                     section("IDEAS", "ShishuTochi", "feliz", "Corey", "bleh", "LastOreo");
                     ImGui.spacing();
+                    ImGui.textWrapped("Earth: NASA Blue Marble; cloud, night and ocean maps by Solar System Scope (CC BY 4.0).");
+                    ImGui.textWrapped("ICBM geometry and livery: supplied icbm-model.zip, adapted and optimized.");
+                    section("3D EVENT MODEL", "Atomic Bomb - Easter Freebie", "Valentin Winkelmann | CC BY 4.0");
+                    if(ImGui.smallButton("Model source and license"))Compat.openSkinBrowser("https://sketchfab.com/3d-models/atomic-bomb-easter-freebie-a3e1493da19d46fca7ae38b376bf9210");
+                    ImGui.textWrapped("Model adapted for in-game rendering; simplified geometry with original texture maps.");
+                    section("EVENT AUDIO", "Explosive.flac by qubodup / Iwan Gabovitch", "Atomic bomb explosion by craigsmith", "CC0 / public domain; edited and layered.", "Pressure rumble synthesized at playback.");
+                    section("DUMPED SOUND ASSETS", "Some additional dumped sounds came from an old personal zip archive.");
+                    ImGui.textWrapped("If an owner wants an asset removed or replaced, I will do so. If you want credit added, contact nyc.dunn@proton.me.");
                     section("IDEAS AND BUG FIXES", "Yark", "SkayMustDown", "Forensica", "ABDALLA");
                 }
             } finally { ImGui.endChild(); }

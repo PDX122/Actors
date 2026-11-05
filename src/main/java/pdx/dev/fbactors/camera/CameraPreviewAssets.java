@@ -14,6 +14,13 @@ public final class CameraPreviewAssets {
     private static final Set<UUID> requestedSkins=new HashSet<>();
     public static final int FLOOR_REPEAT=64;
     private CameraPreviewAssets() {}
+    public static <T> T equipment(Object dispatcher,Class<T> type) {
+        for(var field:dispatcher.getClass().getDeclaredFields()) if(field.getType()==type) {
+            try { field.setAccessible(true);return type.cast(field.get(dispatcher)); }
+            catch(ReflectiveOperationException error) { throw new IllegalStateException("Native preview equipment assets are unavailable",error); }
+        }
+        throw new IllegalStateException("Native equipment asset manager is missing");
+    }
     public static void retryFailed() { failed.clear(); requestedSkins.clear(); }
     public static UUID subject() {
         return Minecraft.getInstance().getUser().getProfileId();

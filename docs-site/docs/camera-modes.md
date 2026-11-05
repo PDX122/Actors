@@ -17,15 +17,34 @@ track and the Camera modes track must be unlocked. Adding, moving, trimming,
 muting, duplicating and deleting clips support editor undo/redo.
 
 Use the group filter to browse **Tracking**, **Ice boating**, **Horse riding**
-and **Cinematic** shots, or search by name and purpose. The library has 24 modes.
+and **Cinematic** shots, or search by name and purpose. **Elytra flight** and **UAV**
+are also available. The library has 38 modes. FPV and Drone dive remain disabled;
+their saved clip data is retained, but these clips do not activate or extend exports.
 
-The preview uses a skinned player and the actual camera math. Ice shots show a
-seated rider in a simplified boat sliding along an ice circuit. Mounted shots
-show a seated rider on an animated block horse following a trail. Other shots
-show a walking player on grass and a stone path, using Minecraft textures. Directional lighting, soft ground shadows and distance haze give the scene
-depth, while adaptive texture subdivision reduces perspective stretching.
-It updates with the mode and camera tuning without moving the replay camera.
-It is a composition preview, not a live view of the replay world.
+The preview places native Minecraft characters on a clean, open perspective grid
+with faded scale markings, soft contact shadows and studio lighting. It captures
+the geometry and animation produced by Minecraft's renderer, so enabled EMF/ETF
+packs such as Fresh Animations and the player add-on animate the preview too.
+The packs stay installed as resource packs; their animation files are not bundled
+into the mod. Captured poses interpolate between animation frames for smooth
+playback. Pack animations use the preview clock and keep playing while the replay
+is paused. Mounted shots use a riding player attached to the displayed horse,
+with a saddle and Minecraft's native passenger and vehicle attachment offsets.
+The preview preserves the renderer's actual player scale and body rotation.
+Ice shots use Minecraft's baked oak boat hull and native paddle stroke motion,
+with synchronized rider arm strokes over the pack's seated pose.
+The rider uses the boat's seat attachment. A simple ice strip and hull
+drift relative to travel direction make the slide readable.
+Elytra shots equip wings and use the native gliding state, so the pack supplies
+its gliding and wing animation, with walking motion disabled. Flight framing keeps the pilot and wings readable,
+and native pitch follows the demonstration's climbs and descents. UAV shots use ordinary walking subjects; the
+packs contain no UAV or drone animation.
+
+Hover over a card to play it. The larger view has pause, replay and a time slider,
+plus a top-down camera path. Playback holds at the end until replayed. Hovering
+a card does not change the main preview's animation clock. Lens, height, distance and smoothing use the current
+camera settings. This demonstration does not move the replay camera or use the
+replay's location as its background.
 
 ## Modes
 

@@ -47,6 +47,19 @@ final class ReleaseRecordingChecks {
             TakeBundle.exportBundle(zip,replay.getMetadata().replayIdentifier,"Release QA",List.of(take),empty,empty,empty);
             var imported=TakeBundle.readBundle(zip);
             require(imported.takes().size()==1 && imported.takes().get(0).frames.equals(take.frames),"sharing bundle roundtrip");
+            ActorMode.enterSetup(replay,viewer); ActorMode.confirmSetup();
+            ActorMode.tick(replay,viewer,100);
+            require(ActorMode.beginCountdown(1),"death fixture countdown");
+            for(int t=100;t<120;t++) ActorMode.tick(replay,viewer,t);
+            var dying=FlashbackActors.RECORDER.current();
+            require(dying!=null,"death fixture recording");
+            viewer.setHealth(0);
+            ActorMode.tick(replay,viewer,120);
+            require(ActorMode.phase()==ActorMode.Phase.IDLE && !FlashbackActors.RECORDER.isRecording(),"death ends run");
+            require(dying.vitals.stream().anyMatch(v -> v.health()<=0),"death frame retained");
+            require(viewer.isAlive() && viewer.isSpectator(),"death restores living editor");
+            require(ActorMode.finish(replay,viewer)==null,"death finish is idempotent");
+
             Files.writeString(directory.resolve("recording.txt"),"PASS: setup, countdown, movement, crouch/sprint inputs, item use deduplication, stop, binary take and sharing bundle roundtrips\n");
         } finally {
             if(ActorMode.phase()!=ActorMode.Phase.IDLE || FlashbackActors.RECORDER.isRecording()) ActorMode.finish(replay,viewer);

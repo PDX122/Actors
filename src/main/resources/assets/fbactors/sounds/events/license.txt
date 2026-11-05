@@ -1,0 +1,19 @@
+Explosion source: "Explosive.flac" by qubodup / Iwan Gabovitch
+https://freesound.org/people/qubodup/sounds/189778/
+License: CC0 / public domain. The source page identifies the recording as
+extracted from a United States Government video of explosive disposal.
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Adaptations: separate impact recordings were trimmed and normalized; a
+low-frequency rumble was derived by slowing, filtering and reverberating the
+recording. Ogg Vorbis encodings are bundled for the in-game sound mixer.
+
+fall.ogg: original synthesized falling whistle / rushing air effect, created
+for this mod and licensed under the same MIT license as the source code.
+
+nuclear.ogg: "S28-35 Atomic bomb explosion. then rumble.wav" by craigsmith
+https://freesound.org/people/craigsmith/sounds/674884/
+CC0 https://creativecommons.org/publicdomain/zero/1.0/
+Vintage Hollywood effects from USC Cinema archival tape; filtered and encoded.
+Not an authenticated nuclear test recording.
+Runtime procedural pressure audio is original MIT-licensed mod code.

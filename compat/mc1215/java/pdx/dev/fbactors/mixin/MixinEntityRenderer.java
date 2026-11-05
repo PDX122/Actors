@@ -19,6 +19,10 @@ public abstract class MixinEntityRenderer {
     private void fbactors$renderMorph(Entity entity, double x, double y, double z,
             float yaw, PoseStack poseStack, MultiBufferSource buffers, int light,
             CallbackInfo ci) {
+        if (pdx.dev.fbactors.camera.BoatCam.hides(entity.getUUID())) {
+            ci.cancel();
+            return;
+        }
         MorphRenderInfo info = MorphRenderState.get(entity.getUUID());
         MorphRenderState.noteRenderLookup(entity.getUUID(), info != null && !info.isPlayer());
         if (info == null || info.isPlayer()) {

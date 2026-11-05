@@ -82,7 +82,7 @@ public final class ReleaseVisualChecks {
                 for (int mode = 0; mode < BoatCam.MODES.length; mode++) {
                     final int m = mode;
                     screens.add(new Screen("camera-" + mode, () -> {
-                        FbSettings.settings().boatCamMode = m; BoatMenu.open(0);
+                        CameraModes.select(m); BoatMenu.open(0);
                     }));
                 }
                 screens.add(new Screen("camera-timeline", () -> BoatMenu.open(1)));
@@ -126,12 +126,15 @@ public final class ReleaseVisualChecks {
                     if(!ErrorRecovery.run("Random test",() -> {})) throw new IllegalStateException("Retry remained disabled");
                     ErrorWindow.open();
                 }));
-                if("1".equals(System.getenv("FBACTORS_VISUAL_FOCUS"))) {
+                if("1".equals(System.getenv("FBACTORS_CAMERA_PREVIEW_QA"))) {
+                    screens.removeIf(s -> !List.of("camera-14","camera-15","camera-16","camera-17","camera-30","camera-31","camera-32","camera-33","camera-34","camera-35").contains(s.name));
+                } else if("1".equals(System.getenv("FBACTORS_VISUAL_FOCUS"))) {
                     Effects.add("noir",0);
                     screens.removeIf(s -> !List.of("actor-setup","subtitles","studio-scene","studio-edit","studio-looks","shortcut-help","morph-cat-sitting","morph-zombie-sitting","morph-ui-stability","morph-ui-cache","morph-world-stability").contains(s.name));
                 }
             }
             if (index == screens.size()) {
+                if("1".equals(System.getenv("FBACTORS_CAMERA_PREVIEW_QA"))) CameraPreviewNative.verifyEvidence();
                 closeWindows(); FbSettings.settings().boatCamMode = originalMode;
                 restoreSettings();
                 var unexpected = ErrorRecovery.FAILURES.history().stream()
@@ -152,8 +155,10 @@ public final class ReleaseVisualChecks {
                 Files.deleteIfExists(Path.of(captureFile + ".ready"));
                 pendingCapture = captureFile;
             }
-            boolean animated=screens.get(index).name.endsWith("-walking") || screens.get(index).name.endsWith("-running");
-            if(animated && ticks>=24 && captured && !motionRequested) {
+            boolean animated=screens.get(index).name.endsWith("-walking") || screens.get(index).name.endsWith("-running")
+                || "1".equals(System.getenv("FBACTORS_CAMERA_PREVIEW_QA"));
+            int motionTick="1".equals(System.getenv("FBACTORS_CAMERA_PREVIEW_QA"))?48:24;
+            if(animated && ticks>=motionTick && captured && !motionRequested) {
                 motionRequested=true; captured=false;
                 pendingCapture=captureFile.getParent().resolve("motion.png");
             }

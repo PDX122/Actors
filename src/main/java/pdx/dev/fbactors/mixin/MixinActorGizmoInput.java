@@ -18,6 +18,7 @@ public class MixinActorGizmoInput {
 
     @Inject(method = "handleBasicInputs", at = @At("HEAD"), cancellable = true)
     private static void fbactors$selectOrDragActor(CallbackInfo ci) {
+        if (pdx.dev.fbactors.events.EventPlacement.viewportInput()) { ci.cancel(); return; }
         if (!ActorMoveGizmo.canEdit()) return;
         if (ActorMoveGizmo.consumesInput()) { ci.cancel(); return; }
         if (!ImGui.isMouseClicked(0)) return;

@@ -126,6 +126,9 @@ public final class Hotkey {
     }
 
     public static boolean endRunOnEscape(int key) {
+        if(key==Compat.key("key.keyboard.escape") && pdx.dev.fbactors.events.EventPlacement.active()) {
+            pdx.dev.fbactors.events.EventPlacement.cancelByEscape();return true;
+        }
         var replay = Flashback.getReplayServer();
         var phase = ActorMode.phase();
         if (!FbSettings.settings().escapeEndsRun || replay == null || key != Compat.key("key.keyboard.escape")

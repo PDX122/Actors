@@ -105,7 +105,7 @@ class LookCpuBakeTest {
                 assertNull(LookCpuBake.bakePixels(new int[] {abgr(200, 100, 50, 255)}, 1, 1, look, 0f), entry.id());
             }
         }
-        assertEquals(60, FilterCatalog.entries().size());
+        assertEquals(70, FilterCatalog.entries().size());
     }
 
     @Test void carbonIsMonochromeAndMonotonic() {

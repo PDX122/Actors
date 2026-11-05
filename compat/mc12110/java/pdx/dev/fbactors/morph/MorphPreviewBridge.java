@@ -30,8 +30,13 @@ public final class MorphPreviewBridge {
     }
     private static final class Model implements MorphPreviewModel {
         private float rotation;
+        private java.util.function.Consumer<pdx.dev.fbactors.camera.CameraPreviewCapture.Mesh> cameraOutput;
+        @Override public void capture(java.util.function.Consumer<pdx.dev.fbactors.camera.CameraPreviewCapture.Mesh> output) { cameraOutput=output; }
         @Override public void rotation(float degrees) { rotation = degrees; }
         @Override public void pose(String pose) { animator.pose(pose); }
+        @Override public void cameraAction(String action) { animator.cameraAction(action); }
+        @Override public net.minecraft.world.entity.LivingEntity cameraEntity() { return mob; }
+        @Override public void cameraMount(net.minecraft.world.entity.Entity mount) { animator.cameraMount(mount); }
         private final Minecraft client = Minecraft.getInstance();
         private final net.minecraft.world.entity.LivingEntity mob;
         private final MorphPreviewAnimator animator;
@@ -50,6 +55,9 @@ public final class MorphPreviewBridge {
         }
         @Override public java.util.List<String> stages() { var names=CustomMobs.animations(CustomMobs.entity(mob));return names.isEmpty()?animator.stages():names; }
         @Override public MorphThumbnail render(MorphPreviewPlayback.Frame frame) {
+            return pdx.dev.fbactors.camera.CameraPreviewCapture.render(cameraOutput, frame.ticks(), () -> renderNow(frame));
+        }
+        private MorphThumbnail renderNow(MorphPreviewPlayback.Frame frame) {
             animator.apply(frame);
             CustomMobs.preview(mob,frame.stage(),frame.localTicks());
             var projection = RenderSystem.getProjectionMatrixBuffer();
@@ -72,7 +80,7 @@ public final class MorphPreviewBridge {
                 var output = new net.minecraft.client.gui.render.state.GuiRenderState();
                 var graphics = new net.minecraft.client.gui.GuiGraphics(client, input);
                 int scale = MorphPreviewLayout.scale(width, height, resolution);
-                net.minecraft.client.gui.screens.inventory.InventoryScreen.renderEntityInInventoryFollowsMouse(graphics, 0, 0, resolution, resolution, scale, 0, resolution/2f-26, resolution/2f-10, mob);
+                net.minecraft.client.gui.screens.inventory.InventoryScreen.renderEntityInInventoryFollowsMouse(graphics, 0, 0, resolution, resolution, scale, 0, cameraOutput==null?resolution/2f-26:resolution/2f, cameraOutput==null?resolution/2f-10:resolution/2f+(float)Math.tan(mob.getXRot()/20f)*40, mob);
                 input.forEachPictureInPicture(value -> {
                     if (value instanceof net.minecraft.client.gui.render.state.pip.GuiEntityRenderState entity) {
                         entity.renderState().ageInTicks = frame.ticks();

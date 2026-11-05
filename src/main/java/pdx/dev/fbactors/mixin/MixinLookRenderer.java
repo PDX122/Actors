@@ -13,8 +13,14 @@ public class MixinLookRenderer {
         pdx.dev.fbactors.filters.ActorMosaic.beginFrame();
     }
 
+    @Inject(method = "renderLevel", at = @At("TAIL"))
+    private void fbactors$timelineAudio(CallbackInfo ci) {
+        pdx.dev.fbactors.debug.ErrorRecovery.run("Timeline audio", pdx.dev.fbactors.events.EventAudio::tick);
+    }
+
     @Inject(method = "close", at = @At("HEAD"))
     private void fbactors$closeLooks(CallbackInfo ci) {
+        pdx.dev.fbactors.events.Events.close();
         pdx.dev.fbactors.filters.Looks.close();
         pdx.dev.fbactors.morph.MorphTracks.finish();
         pdx.dev.fbactors.camera.BoatEdits.finish();

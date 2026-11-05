@@ -1,0 +1,130 @@
+{
+  "icbm.alert_klaxon": {
+    "sounds": [
+      {
+        "name": "fbactors:events/icbm/alert_klaxon",
+        "stream": false
+      }
+    ]
+  },
+  "icbm.silo_door_open": {
+    "sounds": [
+      {
+        "name": "fbactors:events/icbm/silo_door_open",
+        "stream": false
+      }
+    ]
+  },
+  "icbm.launch": {
+    "sounds": [
+      {
+        "name": "fbactors:events/icbm/launch",
+        "stream": false
+      }
+    ]
+  },
+  "icbm.reentry_scream": {
+    "sounds": [
+      {
+        "name": "fbactors:events/icbm/reentry_scream",
+        "stream": false
+      }
+    ]
+  },
+  "icbm.detonation_close": {
+    "sounds": [
+      {
+        "name": "fbactors:events/icbm/detonation_close",
+        "stream": false
+      }
+    ]
+  },
+  "icbm.detonation_distant": {
+    "sounds": [
+      {
+        "name": "fbactors:events/icbm/detonation_distant",
+        "stream": false
+      }
+    ]
+  },
+  "icbm.engine_sustain": {
+    "sounds": [
+      {
+        "name": "fbactors:events/icbm/engine_sustain",
+        "stream": false
+      }
+    ]
+  },
+  "icbm.stage_cap": {
+    "sounds": [
+      {
+        "name": "fbactors:events/icbm/stage_cap",
+        "stream": false
+      }
+    ]
+  },
+  "icbm.stage_deploy": {
+    "sounds": [
+      {
+        "name": "fbactors:events/icbm/stage_deploy",
+        "stream": false
+      }
+    ]
+  },
+  "icbm.stage_clank": {
+    "sounds": [
+      {
+        "name": "fbactors:events/icbm/stage_clank",
+        "stream": false
+      }
+    ]
+  },
+  "icbm.ignition": {
+    "sounds": [
+      {
+        "name": "fbactors:events/icbm/ignition",
+        "stream": false
+      }
+    ]
+  },
+  "icbm.prepare_windup": {
+    "sounds": [
+      {
+        "name": "fbactors:events/icbm/prepare_windup",
+        "stream": false
+      }
+    ]
+  },
+  "icbm.prepare_stopped": {
+    "sounds": [
+      {
+        "name": "fbactors:events/icbm/prepare_stopped",
+        "stream": false
+      }
+    ]
+  },
+  "icbm.impact_bass": {
+    "sounds": [
+      {
+        "name": "fbactors:events/icbm/impact_bass",
+        "stream": false
+      }
+    ]
+  },
+  "icbm.impact_crackle": {
+    "sounds": [
+      {
+        "name": "fbactors:events/icbm/impact_crackle",
+        "stream": false
+      }
+    ]
+  },
+  "icbm.impact_wind": {
+    "sounds": [
+      {
+        "name": "fbactors:events/icbm/impact_wind",
+        "stream": false
+      }
+    ]
+  }
+}

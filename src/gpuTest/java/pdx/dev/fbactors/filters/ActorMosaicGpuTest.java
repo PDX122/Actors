@@ -127,7 +127,7 @@ class ActorMosaicGpuTest {
                     pipeline.actorMosaic(color, mask.texture(), depth, 256, 144, 60, 0, reverse);
                     FloatBuffer bypass = pixels();
                     for (int i = 0; i < bypass.limit(); i++) assertEquals(after.get(i), bypass.get(i), 0);
-                    for (String effect : new String[]{"ascii", "digital_glitch", "hologram", "halftone", "matrix_rain", "neon_wire", "pixel_sort", "codec_smear", "signal_rot", "bitcrush", "tessera"}) {
+                    for (String effect : new String[]{"ascii", "digital_glitch", "hologram", "halftone", "matrix_rain", "neon_wire", "pixel_sort", "codec_smear", "signal_rot", "bitcrush", "circuit_scan", "plasma_field", "spectral_echo", "data_vortex", "hex_shield", "kaleidoscope", "fpv_analog", "action_camera", "fpv_digital", "uav_feed", "tessera"}) {
                         var look = new LookSettings(); look.add(effect);
                         if (effect.equals("tessera")) { look.add("ascii"); look.exposure = .3f; }
                         FloatBuffer original = pixels();

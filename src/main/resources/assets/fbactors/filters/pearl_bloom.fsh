@@ -33,5 +33,5 @@ vec3 finishColor(vec3 c,float grain){
 
 
 void main(){
-vec3 c=sampleLinear(texCoord);c=displayColor(c+glow(texCoord)*Amount*vec3(0.95,1.0,1.06));fragColor=vec4(clamp(c,0.0,1.0),texture(InSampler,texCoord).a);
+vec3 c=sampleLinear(texCoord);c=displayColor(c+(1.0-c)*(1.0-exp(-glow(texCoord)*Amount*vec3(0.95,1.0,1.06))));fragColor=vec4(clamp(c,0.0,1.0),texture(InSampler,texCoord).a);
 }

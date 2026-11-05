@@ -1,0 +1,8 @@
+Surface: NASA Blue Marble Next Generation, July 2004.
+Reto Stockli / NASA Earth Observatory. Surface resized to 8192x4096.
+https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-map/
+Clouds, night lights and ocean specular mask: Solar System Scope, CC BY 4.0.
+https://play.solarsystemscope.com/textures/
+https://creativecommons.org/licenses/by/4.0/
+Images packed into surface RGB / ocean A and night RGB / cloud A; mipmapped.
+Historical composite imagery, not live weather or a map of the Minecraft scene.

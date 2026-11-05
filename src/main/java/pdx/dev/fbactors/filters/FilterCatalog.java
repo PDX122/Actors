@@ -38,8 +38,42 @@ public final class FilterCatalog {
     }
     public static List<Param> params(String id) {
         if(ManagedShaders.custom(id)) return ManagedShaders.params(id);
+        if(CameraTelemetry.supports(id)) {
+            var params=new java.util.ArrayList<Param>();
+            params.add(new Param("Amount","Camera look strength",0,1,1));
+            if(id.equals("uav_feed")) {
+                params.addAll(List.of(new Param("SensorMode","Sensor: EO / white hot / black hot",0,2,1),
+                    new Param("SensorGain","Sensor gain",.5f,2,1), new Param("SensorContrast","Sensor contrast",.5f,2,1),
+                    new Param("SensorDetail","Sensor detail",0,1,.25f),new Param("SensorNoise","Sensor noise",0,.04f,.006f),
+                    new Param("SensorLines","Sensor resolution (lines)",256,1080,512),
+                    new Param("Hud","HUD opacity",0,1,1),new Param("HudScale","HUD scale",.65f,1.6f,1),
+                    new Param("HudMargin","HUD safe area",.02f,.15f,.055f),new Param("HudX","HUD horizontal offset",-.15f,.15f,0),
+                    new Param("HudY","HUD vertical offset",-.15f,.15f,0),new Param("ShowClock","Show clock",0,1,1),
+                    new Param("ClockOffset","Clock offset (seconds)",-3600,86399,0),new Param("ClockRate","Clock speed",0,4,1),
+                    new Param("Recording","Recording indicator",0,1,1),new Param("ShowTelemetry","Show sensor telemetry",0,1,1),
+                    new Param("ShowHorizon","Show gimbal pitch scale",0,1,0),new Param("AltitudeOffset","Altitude zero (blocks)",-512,512,0),
+                    new Param("Imperial","Imperial units",0,1,0)));
+                return List.copyOf(params);
+            }
+            else params.add(new Param("Distortion","Lens curvature",0,1,id.equals("fpv_digital")?.35f:.65f));
+            if(id.equals("fpv_analog")) params.add(new Param("SignalNoise","Signal texture",0,1,.55f));
+            else if(!id.equals("uav_feed")) params.add(new Param("Clarity","Detail enhancement",0,1,.35f));
+            params.addAll(List.of(new Param("Hud","HUD opacity",0,1,1),
+                new Param("Layout","HUD: analog / action / digital / UAV",0,3,id.equals("fpv_analog")?0:id.equals("action_camera")?1:id.equals("fpv_digital")?2:3),
+                new Param("HudScale","HUD scale",.65f,1.6f,1), new Param("HudMargin","HUD safe area",.02f,.15f,.055f),
+                new Param("HudX","HUD horizontal offset",-.15f,.15f,0), new Param("HudY","HUD vertical offset",-.15f,.15f,0),
+                new Param("ShowClock","Show clock",0,1,1),new Param("ClockOffset","Clock offset (seconds)",-3600,86399,0),
+                new Param("ClockRate","Clock speed",0,4,1),new Param("Recording","Recording indicator",0,1,1),
+                new Param("ShowTelemetry","Show flight telemetry",0,1,1),new Param("ShowHorizon","Show artificial horizon",0,1,1),
+                new Param("AltitudeOffset","Altitude zero (blocks)",-512,512,0),new Param("Imperial","Imperial units",0,1,0),
+                new Param("Battery","Battery display (%)",0,100,98),new Param("BatteryDrain","Battery display drain (%/min)",0,5,.4f),
+                new Param("Link","Link display (%)",0,100,99),new Param("FrameRate","Displayed frame rate",24,120,60),
+                new Param("Iso","Displayed ISO",100,6400,400),new Param("Shutter","Displayed shutter denominator",24,2000,120)));
+            return List.copyOf(params);
+        }
         return switch (id == null ? "" : id) {
-            case "vhs_damage", "digital_glitch", "hologram", "sonar", "melt", "matrix_rain", "neon_spectrum" ->
+            case "vhs_damage", "digital_glitch", "hologram", "sonar", "melt", "matrix_rain", "neon_spectrum",
+                "circuit_scan", "plasma_field", "spectral_echo", "data_vortex", "hex_shield", "kaleidoscope" ->
                 List.of(new Param("Amount", "Effect strength", 0, 1, 0.85f),
                     new Param("Speed", "Animation speed", 0, 3, 1));
             case "cinema_35mm" -> List.of(new Param("Amount", "Film strength", 0, 1, 1),

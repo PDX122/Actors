@@ -54,7 +54,7 @@ public final class BoatCameraModel {
     public static Shot blend(Shot a, Shot b, double alpha) {
         return new Shot(a.x+(b.x-a.x)*alpha, a.y+(b.y-a.y)*alpha, a.z+(b.z-a.z)*alpha,
             angle(a.yaw,b.yaw,alpha), a.pitch+(b.pitch-a.pitch)*alpha,
-            a.roll+(b.roll-a.roll)*alpha, (float)(a.fov+(b.fov-a.fov)*alpha));
+            angle(a.roll,b.roll,alpha), (float)(a.fov+(b.fov-a.fov)*alpha));
     }
 
     public static double[] blendedVelocity(@Nullable ActorVehicleFrame prev,

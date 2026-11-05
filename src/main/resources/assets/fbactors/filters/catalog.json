@@ -418,5 +418,75 @@
     "category": "Cinematic",
     "origin": "Actors",
     "description": "Cool blue night tones with protected warm practical lights."
+  },
+  {
+    "id": "circuit_scan",
+    "name": "Circuit Scan",
+    "category": "Digital",
+    "origin": "Actors",
+    "description": "Cyan circuit cells and racing data packets trace the scene contours."
+  },
+  {
+    "id": "plasma_field",
+    "name": "Plasma Field",
+    "category": "Digital",
+    "origin": "Actors",
+    "description": "Liquid violet and cyan energy bands ripple across luminous scene edges."
+  },
+  {
+    "id": "spectral_echo",
+    "name": "Spectral Echo",
+    "category": "Digital",
+    "origin": "Actors",
+    "description": "Animated cyan and magenta copies split outward from the original image."
+  },
+  {
+    "id": "data_vortex",
+    "name": "Data Vortex",
+    "category": "Digital",
+    "origin": "Actors",
+    "description": "A twisting digital lens pulls the scene into a chromatic singularity."
+  },
+  {
+    "id": "hex_shield",
+    "name": "Hex Shield",
+    "category": "Digital",
+    "origin": "Actors",
+    "description": "A pulsing honeycomb energy shield overlays the scene with electric rims."
+  },
+  {
+    "id": "kaleidoscope",
+    "name": "Kaleidoscope",
+    "category": "Digital",
+    "origin": "Actors",
+    "description": "Rotating mirrored wedges fracture the scene into a prismatic mandala."
+  },
+  {
+    "id": "fpv_analog",
+    "name": "FPV Analog",
+    "category": "Camera",
+    "origin": "Actors",
+    "description": "Analog FPV OSD with a live clock, flight telemetry, artificial horizon, battery and link display. Every HUD element is adjustable."
+  },
+  {
+    "id": "action_camera",
+    "name": "Action Camera Wide",
+    "category": "Camera",
+    "origin": "Actors",
+    "description": "Action-camera recording UI with a live clock, REC indicator, battery, frame rate, ISO and shutter settings over a wide lens."
+  },
+  {
+    "id": "fpv_digital",
+    "name": "Digital FPV",
+    "category": "Camera",
+    "origin": "Actors",
+    "description": "Digital FPV live-view UI with recording status, time, battery, link, speed, altitude, heading and a moving artificial horizon."
+  },
+  {
+    "id": "uav_feed",
+    "name": "UAV Recon Feed",
+    "category": "Camera",
+    "origin": "Actors",
+    "description": "Reconnaissance HUD with live world coordinates, targeting frame, flight telemetry and selectable color or simulated white-hot / black-hot imaging."
   }
 ]

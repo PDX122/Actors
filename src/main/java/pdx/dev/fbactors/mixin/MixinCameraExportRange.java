@@ -16,6 +16,7 @@ public class MixinCameraExportRange {
         if((Object)this!=EditorStateManager.getCurrent()) return;
         var original=cir.getReturnValue();
         var range=CameraExport.range(BoatStudioState.get().timeline,original.start(),original.end());
+        range=CameraExport.events(pdx.dev.fbactors.events.Events.timeline(),range.start(),range.end());
         cir.setReturnValue(new EditorState.StartAndEnd(range.start(),range.end()));
     }
 }

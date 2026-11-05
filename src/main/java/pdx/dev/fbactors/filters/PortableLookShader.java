@@ -56,6 +56,7 @@ public record PortableLookShader(String source, List<String> floats, List<String
     }
 
     private static float value(String filter, String name, LookSettings look, float time) {
+        if (CameraTelemetry.UNIFORMS.contains(name)) return CameraTelemetry.value(name);
         return switch (name) {
             case "Time" -> time;
             case "Intensity" -> look.intensity;

@@ -6,6 +6,133 @@ and older builds refuse newer files at the version check.
 
 ## 0.11.2 (release candidate)
 
+- Added "Flashback Actors" to the export progress overlay. Events can finish
+  over the last recorded frame with Event cam on or off.
+  Retired lightning strike, Superbolt, Cloud crawler, Thunderstorm, Meteor shower
+  and Volcanic eruption. ICBM, Nuclear bomb, Meteor impact and Meteor airburst remain.
+- ICBMs bank smoothly into a gravity turn with a wider launch plume. Replaced all
+  scheduled event sound with the user's two ICBM packs; matching newer clips take
+  priority, missing sources retain earlier ICBM clips, and plane audio is excluded.
+  Other events are silent. Launch, re-entry and detonation can be auditioned.
+
+- Added Superbolt, Cloud crawler, Thunderstorm, Meteor shower and Meteor airburst.
+  Storms have volumetric shelf clouds, rain curtains and repeated strikes.
+  Meteors now have irregular tumbling bodies, turbulent fire/smoke trains and
+  larger fragments, viewed from a ground witness camera. Rebuilt eruption billows
+  and fountains. Carpet bombing is hidden from both gallery and timeline.
+- Reworked event sound with layered Pixabay-based mixes, continuous approach,
+  launch and eruption beds, repeated thunder/blast cues and library audition buttons.
+  Small live playhead corrections no longer stop sounds as if they were seeks;
+  continuous beds resume when playback begins midway through an event.
+
+- Events now uses the shared gallery layout with search, categories, rendered 3D
+  cards and a separate preview/settings inspector. Added meteor impact, volcanic
+  eruption and branching lightning, including delayed thunder. Carpet bombing
+  is retired; old clips remain in replay files but no longer play.
+- Replaced the ICBM cover-separation camera cut with a continuous orbital dolly.
+
+- Fixed live Event cam stage-cut jitter by sharing a single frame playhead and
+  rejecting small backward prediction jumps. Isolated preview cameras cannot
+  take control of the main world camera.
+- Distant effects bypass the Minecraft cloud layer and unloaded-terrain/far-depth
+  boundary while preserving foreground wall occlusion. Explosion clouds render
+  at full resolution with a 96-step maximum and efficient filtered 3D noise.
+- Removed Tactical and Satellite map endings for now. Saved map choices return
+  to World blast; Cut to black remains available.
+
+- Slowed default ICBMs to 60 seconds and upgraded legacy unlocked default-length
+  clips once. Event presentation time can continue over the final footage frame,
+  with tail seeking and export. Added Director shot cuts and optional letterbox.
+- Added World blast, Tactical map, Satellite map and Cut to black endings. Regional
+  maps have a clickable marker, animated route, flash and graphic blast rings.
+  Ending previews and exports render at full resolution.
+- Fixed distant Earth detail loss caused by premultiplied ocean/cloud mask mips.
+  Packed data channels now filter independently; cloud imagery remains at 8K.
+
+- Replaced the ICBM with the supplied three-stage model and painted livery,
+  optimized to 4,528 triangles. Added a high continuous space arc, independent
+  stages/fairing halves, coast jets, expanding vacuum plume and a camera-only
+  atmosphere/curved-horizon transition. New clips use an editable 18-second sequence.
+- Added NASA Blue Marble surface imagery, credited cloud/night/ocean maps,
+  elevated cloud shadows, ocean glint and a thin atmospheric scattering layer
+  to the cinematic Earth view.
+- Fixed distant model pixelation with full-resolution geometry, complete filtered
+  texture mip chains and small-model edge supersampling. Limited reduced-resolution
+  rendering to large cloud volumes and removed radial seams in cloud circulation.
+
+- Enlarged the nuclear bomb and rebuilt its cloud with rolling billows, a rising
+  column, dust base and condensation skirts. Added optional per-event Director,
+  Distant witness and Overhead cameras, with attached falling-bomb shots and
+  restoration of the prior viewer camera/FOV. Nearby actors keep their replay motion.
+- Optimized the nuclear mesh from 40,272 to 7,000 triangles. Nuclear effects use a
+  depth-aware half-resolution pass; the world stays full resolution. Added a CC0
+  cinematic blast recording and runtime synthesized size/distance pressure rumble.
+
+- Added single-point Nuclear bomb and Carpet bombing events, with high-altitude
+  drops, staggered conventional impacts, terrain-aware impact heights, editable
+  headings and spread, and dedicated 3D previews. The nuclear drop uses Valentin
+  Winkelmann's credited CC BY 4.0 bomb model and its original texture maps.
+  Added pressure-wave lens distortion, heat haze, afterimages, lingering smoke,
+  embers and recorded explosion audio with layered rumble. Escape now consumes
+  the placement cancellation key before Minecraft opens its pause menu.
+
+- Rebuilt the visual ICBM from museum and launch-photo references: a larger
+  finless two-stage body, dark rounded fairing, raised service details, weathered
+  metal panels and twin hollow engine bells. Events now have an actual 3D
+  turntable and a scrubbable sequence preview. New clips default to 12 seconds,
+  with accelerating boost, independent falling stages, fairing separation,
+  engine cutoff, a persistent launch trail and a fast glowing terminal dive.
+
+- Added an Events library with a visual-only ICBM. Drag onto a highlighted launch
+  block, then click the impact block. Each event gets its own stretchable timeline
+  row, with undo, mute, lock, duplication and endpoint editing. Replay-clock
+  animation covers ignition, boost, stage separation, re-entry, a fireball,
+  shockwave, ejecta and mushroom cloud, including video exports. Events save per
+  replay without changing blocks, entities, damage, or world simulation.
+
+- Ice previews now include Minecraft's textured hull and animated paddle strokes,
+  with the rider's arms synchronized to the oars over the pack's seated pose.
+  Native seating and a simple ice strip complete the demo. Ice and Elytra presets
+  frame their subjects closer, and gliding pitch follows climbs and descents.
+  Elytra wing surfaces render from both sides, preserving their transparent texture.
+  All captured character, wing and hull textures use nearest-neighbor sampling.
+  Elytra uses an explicit gliding state with zero walk-cycle input.
+  The preview supplies its own frame time to EMF so authored pack animations
+  keep advancing while Flashback freezes the replay world.
+
+- Restored Elytra and UAV camera shots with native gliding poses and equipment.
+  FPV and Drone dive remain disabled. Preview characters move on a clean
+  studio floor with fading scale markings and soft contact shadows. Captured pack
+  poses interpolate between native frames, hover and inspector playback have
+  separate clocks, and previews hold at the end instead of snapping back. Horse
+  riders use Minecraft's passenger attachment offsets. Native renderer scaling
+  and body rotations are preserved, and loaded equipment assets supply saddles
+  and Elytra wings. The simpler environment emits fewer triangles.
+
+- Camera modes now preview native Minecraft characters in a neutral staged set.
+  Active resource packs supply their real model geometry and animations, including
+  Fresh Animations and its player add-on through EMF/ETF. Added hover playback,
+  pause, replay, scrubbing and a camera-path view. Preview renderers share their
+  model registry while keeping their targets and buffers isolated.
+
+- Replaced the UAV feed's bitmap lettering with antialiased instrument strokes
+  and a sensor overlay with a recording light and automatic tracking gate.
+  UAV altitude follows the ground below the subject, while the gimbal eases
+  after jumps instead of lifting or snapping with the actor.
+
+- New camera effects start at five seconds and can be extended on the timeline.
+
+- Smoothed recorded vehicle camera motion across tick boundaries and made moving
+  target damping consistent across preview and export frame rates. Mounted POV
+  cameras stay attached to the subject; teleports cut instead of flying through terrain.
+- Reworked UAV shots with narrow sensor lenses, a fixed tracking bearing and slow
+  loiter. UAV Recon Feed now uses one scalable EO/IR overlay in preview and export,
+  actual sensor range and altitude, replay time, and world X/Z instead of invented
+  geographic coordinates. Added sensor resolution, gain, contrast, detail and noise
+  controls. IR is a visible-image approximation, not a temperature simulation.
+- Preserved highlight detail in halation and pearl bloom and softened the night
+  vision phosphor, scan pattern and noise while retaining bright-scene detail.
+
 - Fixed actor effects spreading onto clouds in 26.3 when a render pass retained
   an actor texture from an earlier draw. Actor mask capture now considers only
   bindings declared by the active pipeline.

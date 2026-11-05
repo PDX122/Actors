@@ -1,0 +1,3 @@
+Geometry and livery adapted from user-supplied icbm-model.zip / icbm-model.html.
+Standalone demo controls, environment and flight simulation excluded.
+Meshes scaled uniformly to 31.4 m, attribute-simplified and baked as six independent parts.

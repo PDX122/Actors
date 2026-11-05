@@ -59,6 +59,9 @@ public final class FilterGpuPipeline implements AutoCloseable {
     private final int[] textures = new int[3];
     private final int[] framebuffers = new int[4];
     private int testPattern;
+    private pdx.dev.fbactors.events.EventEarth earth;
+    private pdx.dev.fbactors.events.EventCloud cloud;
+    private final pdx.dev.fbactors.events.BombModel[] eventModels=new pdx.dev.fbactors.events.BombModel[2];
     private int[] extentTextures = new int[0];
     private int extentFramebuffer;
     private int extentWidth;
@@ -79,7 +82,7 @@ public final class FilterGpuPipeline implements AutoCloseable {
     public static String source(String id) {
         String custom = ManagedShaders.source(id);
         if(custom != null) return custom;
-        if (!id.equals("compose") && !id.equals("actor_mosaic") && !id.equals("actor_extent") && !id.equals("actor_source") && !id.equals("actor_composite") && FilterCatalog.find(id) == null) throw new IllegalArgumentException("Unknown filter: " + id);
+        if (!id.equals("compose") && !id.equals("event_resolve") && !id.equals("event_icbm") && !id.equals("actor_mosaic") && !id.equals("actor_extent") && !id.equals("actor_source") && !id.equals("actor_composite") && FilterCatalog.find(id) == null) throw new IllegalArgumentException("Unknown filter: " + id);
         try (var stream = FilterGpuPipeline.class.getResourceAsStream("/assets/fbactors/filters/" + id + ".fsh")) {
             if (stream == null) throw new IllegalArgumentException("Missing shader: " + id);
             return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
@@ -239,6 +242,7 @@ public final class FilterGpuPipeline implements AutoCloseable {
                 GL20.glUseProgram(program.id());
                 sampler(program, "InSampler", input, 0);
                 uniform(program, "Time", time);
+                if(CameraTelemetry.supports(filter)) for(String name:CameraTelemetry.UNIFORMS) uniform(program,name,CameraTelemetry.value(name));
                 GL20.glUniform2f(GL20.glGetUniformLocation(program.id(),"InputSize"),w,h);
                 for (var param : FilterCatalog.params(filter)) uniform(program, param.id(), look.parameter(filter, param));
                 GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, 3);
@@ -260,6 +264,69 @@ public final class FilterGpuPipeline implements AutoCloseable {
             uniform(compose, "Time", time);
             GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, 3);
         } finally { state.restore(); }
+    }
+
+    /** Composite a visual event into the world color only; scene depth stays untouched. */
+    public void worldEvent(int colorTexture, int sceneDepth, int w, int h, Map<String,Float> uniforms) {
+        if(w<=0 || h<=0)return;
+        State state=new State();
+        try {
+            for(int flag:FLAGS)GL11.glDisable(flag);
+            GL11.glColorMask(true,true,true,true);GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK,GL11.GL_FILL);
+            resize(w,h);attach(framebuffers[3],colorTexture);
+            GL30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER,framebuffers[3]);
+            GL30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER,framebuffers[0]);
+            GL30.glBlitFramebuffer(0,0,w,h,0,0,w,h,GL11.GL_COLOR_BUFFER_BIT,GL11.GL_NEAREST);
+            boolean reduced=uniforms.getOrDefault("Type",0f)<1.5f && uniforms.getOrDefault("Progress",0f)>=uniforms.getOrDefault("Impact",1f) && uniforms.getOrDefault("ReducedResolution",0f)>.5f;
+            int rw=(w+1)/2,rh=(h+1)/2;
+            GL30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER,reduced?framebuffers[1]:framebuffers[3]);
+            GL11.glViewport(0,0,reduced?rw:w,reduced?rh:h);GL30.glBindVertexArray(vao);
+            var program=program("event_icbm");GL20.glUseProgram(program.id());
+            sampler(program,"InSampler",textures[0],0);sampler(program,"SceneDepthSampler",sceneDepth,1);
+            bindBomb(program,uniforms.getOrDefault("Type",0f)==0f,(uniforms.getOrDefault("SpaceView",0f)>.5f || uniforms.getOrDefault("Ending",0f)>.5f),uniforms.getOrDefault("CloudNoise",0f)>.5f);
+            uniforms.forEach((name,value)->uniform(program,name,value));
+            uniform(program,"DeltaOutput",reduced?1:0);
+            GL11.glDrawArrays(GL11.GL_TRIANGLES,0,3);
+            if(reduced) {
+                GL30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER,framebuffers[3]);GL11.glViewport(0,0,w,h);
+                var resolve=program("event_resolve");GL20.glUseProgram(resolve.id());
+                sampler(resolve,"InSampler",textures[0],0);sampler(resolve,"EventSampler",textures[1],1);sampler(resolve,"SceneDepthSampler",sceneDepth,2);
+                uniforms.forEach((name,value)->uniform(resolve,name,value));
+                uniform(resolve,"ResolveX",rw/(float)w);uniform(resolve,"ResolveY",rh/(float)h);
+                GL11.glDrawArrays(GL11.GL_TRIANGLES,0,3);
+            }
+        } finally {state.restore();}
+    }
+
+    public int eventPreview(int w,int h,Map<String,Float> uniforms) {
+        State state=new State();
+        try {
+            for(int flag:FLAGS)GL11.glDisable(flag);
+            GL11.glColorMask(true,true,true,true);GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK,GL11.GL_FILL);
+            resize(w,h);GL30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER,framebuffers[1]);
+            GL11.glViewport(0,0,w,h);GL30.glBindVertexArray(vao);
+            var program=program("event_icbm");GL20.glUseProgram(program.id());
+            sampler(program,"InSampler",textures[0],0);sampler(program,"SceneDepthSampler",textures[2],1);
+            bindBomb(program,uniforms.getOrDefault("Type",0f)==0f,(uniforms.getOrDefault("SpaceView",0f)>.5f || uniforms.getOrDefault("Ending",0f)>.5f),uniforms.getOrDefault("CloudNoise",0f)>.5f);
+            uniforms.forEach((name,value)->uniform(program,name,value));GL11.glDrawArrays(GL11.GL_TRIANGLES,0,3);
+            return textures[1];
+        } finally {state.restore();}
+    }
+
+    private void bindBomb(Program program,boolean missile,boolean space,boolean cloudNoise) {
+        int model=missile?1:0;
+        if(eventModels[model]==null)eventModels[model]=new pdx.dev.fbactors.events.BombModel(missile?pdx.dev.fbactors.events.BombModel.ICBM_ROOT:pdx.dev.fbactors.events.BombModel.ROOT);
+        var bombModel=eventModels[model];
+        if(cloudNoise && cloud==null)cloud=new pdx.dev.fbactors.events.EventCloud();
+        if(space && earth==null)earth=new pdx.dev.fbactors.events.EventEarth();
+        for(int i=0;i<2;i++) {
+            GL13.glActiveTexture(GL13.GL_TEXTURE0+6+i);
+            sampler(program,pdx.dev.fbactors.events.EventEarth.SAMPLERS[i],space?earth.texture(i):textures[0],6+i);
+        }
+        for(int i=0;i<4;i++) {
+            GL13.glActiveTexture(GL13.GL_TEXTURE0+2+i);
+            sampler(program,pdx.dev.fbactors.events.BombModel.SAMPLERS[i],i==2 && cloudNoise?cloud.texture():bombModel.texture(i),2+i);
+        }
     }
 
     private int actorExtent(int depth, int w, int h, boolean reverse) {
@@ -369,6 +436,7 @@ public final class FilterGpuPipeline implements AutoCloseable {
                 GL20.glUseProgram(effect.id());
                 sampler(effect, "InSampler", textures[input], 0);
                 uniform(effect, "Time", time);
+                if(CameraTelemetry.supports(filter)) for(String name:CameraTelemetry.UNIFORMS) uniform(effect,name,CameraTelemetry.value(name));
                 for (var param : FilterCatalog.params(filter)) uniform(effect, param.id(), look.parameter(filter, param));
                 if (filter.equals("tessera")) {
                     actorDepth(effect, actorDepth, sceneDepth, entityDepth, reverse);
@@ -489,6 +557,8 @@ public final class FilterGpuPipeline implements AutoCloseable {
     }
 
     @Override public void close() {
+        if(earth!=null)earth.close();earth=null;if(cloud!=null)cloud.close();cloud=null;
+        for(var model:eventModels)if(model!=null)model.close();java.util.Arrays.fill(eventModels,null);
         for (var program : programs.values()) GL20.glDeleteProgram(program.id());
         programs.clear();
         for (int texture : extentTextures) GL11.glDeleteTextures(texture);

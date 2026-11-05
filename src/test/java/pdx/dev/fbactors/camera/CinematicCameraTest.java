@@ -73,8 +73,24 @@ class CinematicCameraTest {
         for(var entry:CameraModesCatalog.ENTRIES) for(double speed:new double[]{0,.001,.3,4}) for(double time:new double[]{0,4,8,90}) {
             var frame=CameraModeModel.shot(0,0,0,179,speed,-speed,120,time,2.55,CameraModesCatalog.recommended(entry.mode()));
             assertTrue(frame.valid(),entry.id());
-            assertTrue(frame.fov()>=30 && frame.fov()<=110);
+            assertTrue(frame.fov()>=(CameraModesCatalog.uav(entry.mode())?2:30) && frame.fov()<=110);
         }
+    }
+    @Test void wildShotsAnimateAndTimedDivesSettle() {
+        for(int mode=24;mode<=29;mode++) {
+            assertEquals(mode,CameraModesCatalog.recommended(mode).mode());
+            assertEquals(shot(mode,0),shot(mode,-10));
+            assertNotEquals(shot(mode,0),shot(mode,4));
+        }
+        assertEquals(96,shot(24,4).roll(),1e-9);
+        assertTrue(shot(25,2).y()>shot(25,0).y());
+        assertTrue(shot(26,2).x()>0);
+        assertTrue(shot(27,2).x()>0);
+        assertEquals(shot(28,2),shot(28,80));
+        assertTrue(Math.abs(shot(28,2).z())<Math.abs(shot(28,0).z())*.25);
+        assertEquals(shot(29,8),shot(29,80));
+        assertTrue(shot(29,0).pitch()>70);
+        assertTrue(shot(29,8).pitch()<0);
     }
     @Test void sideControlsRespondBelowTheBaseDistanceAndCanCrossToTheOtherSide() {
         for(int mode:new int[]{1,16,18}) {

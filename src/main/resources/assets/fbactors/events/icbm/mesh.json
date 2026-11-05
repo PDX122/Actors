@@ -1,0 +1,39 @@
+{
+  "width": 1024,
+  "height": 46,
+  "triangles": 4528,
+  "nodes": 1848,
+  "parts": [
+    {
+      "name": "first_stage",
+      "triangles": 727,
+      "sourceTriangles": 2416
+    },
+    {
+      "name": "second_stage",
+      "triangles": 399,
+      "sourceTriangles": 720
+    },
+    {
+      "name": "third_stage",
+      "triangles": 400,
+      "sourceTriangles": 720
+    },
+    {
+      "name": "shroud_left",
+      "triangles": 1152,
+      "sourceTriangles": 3840
+    },
+    {
+      "name": "shroud_right",
+      "triangles": 1151,
+      "sourceTriangles": 3840
+    },
+    {
+      "name": "post_boost",
+      "triangles": 699,
+      "sourceTriangles": 1040
+    }
+  ],
+  "mips": 13
+}

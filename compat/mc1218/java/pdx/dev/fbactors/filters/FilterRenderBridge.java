@@ -10,6 +10,12 @@ public final class FilterRenderBridge {
     public static void validateCustom(String source) { throw new IllegalStateException("Custom shaders require the OpenGL renderer on this Minecraft version."); }
 
 
+    public static long eventPreviewHandle(int texture,int width,int height) { return texture; }
+    public static void closeEventPreview() {}
+    public static long nativeEventPreview(java.util.Map<String,Float> uniforms,int width,int height) { return 0; }
+
+    public static boolean renderEvent(java.util.Map<String,Float> uniforms) { return false; }
+
     public static boolean renderNative(LookSettings look, float time) { return false; }
     public static long nativeCustomPreview(String id,float time) { return 0; }
     public static long nativePreviews() { return 0; }

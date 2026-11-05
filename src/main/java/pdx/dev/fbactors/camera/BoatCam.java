@@ -12,10 +12,12 @@ import pdx.dev.fbactors.settings.FbSettings;
 public final class BoatCam {
     public static final String[] MODES = CameraModesCatalog.names();
     private static boolean enabled, applying, timelineOwned;
-    private static java.util.UUID activeClip;
+    private static java.util.UUID activeClip, mountedSubject, mountedBody, sampledTarget;
     private static Object session;
     private static Object renderExport;
-    private static BoatCameraModel.Shot shot, saved, rendered;
+    private static BoatCameraModel.Shot shot, saved, rendered, previousDesired;
+    private static UavCameraModel.State uav;
+    private static Settings sampledSettings;
     private static double lastTick = Double.NaN, startedTick;
     private static boolean savedFov, savedRoll;
     private static float savedFovAmount, savedRollAmount;
@@ -23,6 +25,8 @@ public final class BoatCam {
     private BoatCam() {}
     public static void open() { BoatMenu.open(0); }
     public static boolean ownsCamera() {
+        if(pdx.dev.fbactors.events.EventCam.applying())return false;
+        if(pdx.dev.fbactors.events.EventCam.ownsCamera())return true;
         if (applying || ActorMode.isActive()) return false;
 
         boolean active = BoatStudioState.get().timeline.active(BoatSubjects.clock()) != null;
@@ -67,22 +71,26 @@ public final class BoatCam {
         reset();
     }
     public static void restartShot() { startedTick=BoatSubjects.clock(); reset(); }
-    public static void reset() { shot = null; rendered = null; lastTick = Double.NaN; }
+    public static void reset() { shot = null; rendered = null; previousDesired = null; uav = null; sampledSettings = null; mountedSubject = mountedBody = null; lastTick = Double.NaN; }
+    public static boolean hides(java.util.UUID entity) {
+        return rendered!=null && entity!=null && (entity.equals(mountedSubject) || entity.equals(mountedBody));
+    }
 
     public static BoatCameraModel.Shot renderedShot() {
+        var event=pdx.dev.fbactors.events.EventCam.renderedShot();if(event!=null)return event;
         return enabled && !ActorMode.isActive() && session==Flashback.getReplayServer()?rendered:null;
     }
     public record Settings(int mode, double distance, double height, double side, double ahead,
                            double orbit, double bank, double fov, double speedFov, double lag, boolean collision) {
         public Settings {
             mode = Math.max(0, Math.min(MODES.length - 1, mode));
-            distance = finite(distance, .5, 24, 4);
-            height = finite(height, .3, 12, 2);
+            distance = finite(distance, .5, CameraModesCatalog.uav(mode)?256:24, 4);
+            height = finite(height, .3, CameraModesCatalog.uav(mode)?256:12, 2);
             side = finite(side, -12, 12, 0);
             ahead = finite(ahead, 0, 12, 0);
             orbit = finite(orbit, -90, 90, 20);
-            bank = finite(bank, 0, 30, 0);
-            fov = finite(fov, 30, 110, 70);
+            bank = finite(bank, 0, CameraModesCatalog.fpv(mode)?85:30, 0);
+            fov = finite(fov, CameraModesCatalog.uav(mode)?2:30, 110, 70);
             speedFov = finite(speedFov, 0, 20, 0);
             lag = finite(lag, 0, 1, 0);
         }
@@ -105,7 +113,8 @@ public final class BoatCam {
             return BoatCameraModel.battle(a.x(),a.y()+CameraModeModel.aimHeight(BoatSubjects.eyeHeight(a))-.6,a.z(),b.x(),b.y()+CameraModeModel.aimHeight(BoatSubjects.eyeHeight(b))-.6,b.z(),heading,
                 s.distance(),s.height(),s.fov(),aspect);
         }
-        return CameraModeModel.shot(a.x(),a.y(),a.z(),a.yaw(),a.vx(),a.vz(),a.turn(),tick/20,
+        double altitude=CameraModesCatalog.uav(s.mode())?BoatSubjects.groundHeight(a):a.y();
+        return CameraModeModel.shot(a.x(),altitude,a.z(),a.yaw(),a.pitch(),a.vx(),a.vy(),a.vz(),a.turn(),tick/20,
             BoatSubjects.eyeHeight(a),s);
     }
     public static BoatCameraModel.Shot smooth(BoatCameraModel.Shot before, BoatCameraModel.Shot next,
@@ -113,14 +122,25 @@ public final class BoatCam {
         if (before == null || !Double.isFinite(delta) || delta < 0 || delta > 5 || lag <= 0) return next;
         return delta > 0 ? BoatCameraModel.blend(before,next,1-Math.exp(-delta/(20*Math.max(.001,lag)))) : before;
     }
+    public static BoatCameraModel.Shot smooth(BoatCameraModel.Shot before, BoatCameraModel.Shot from,
+                                             BoatCameraModel.Shot next, double delta, double lag) {
+        if (from == null || before == null || !Double.isFinite(delta) || delta < 0 || delta > 5 || lag <= 0) return next;
+        if (delta == 0) return before;
+        // Integrate the moving target over the frame, so damping does not change with export FPS.
+        double step = delta/(20*Math.max(.001,lag));
+        double alpha = -Math.expm1(-step);
+        double weight = step < .001 ? .5+step/12 : 1/alpha-1/step;
+        return BoatCameraModel.blend(before,BoatCameraModel.blend(from,next,weight),alpha);
+    }
     public static void clientTick() {
         var state = BoatStudioState.get();
         BoatStudioState.flush(false);
         var clip = state.timeline.active(BoatSubjects.clock());
-        BoatSubjects.watch(clip == null ? state.target : clip.target, clip == null ? state.rival : clip.rival);
+        BoatSubjects.watch(BoatSubjects.resolve(clip == null ? state.target : clip.target), BoatSubjects.resolve(clip == null ? state.rival : clip.rival));
     }
     public static void renderFrame() {
-        rendered=null;
+        rendered=null; mountedSubject=mountedBody=null;
+        if(pdx.dev.fbactors.events.EventCam.renderFrame())return;
         Object export=Flashback.isExporting()?Flashback.EXPORT_JOB:null;
         if(renderExport!=export) { renderExport=export; reset(); }
         var studio = BoatStudioState.get();
@@ -137,19 +157,39 @@ public final class BoatCam {
         var replay = Flashback.getReplayServer();
         if (replay == null || replay != session || ActorMode.isActive() || mc.player == null || mc.level == null) { stop(); return; }
         var state = BoatStudioState.get();
-        var a = BoatSubjects.client(clip == null ? state.target : clip.target,tick);
+        var target=BoatSubjects.resolve(clip==null?state.target:clip.target);
+        if(!java.util.Objects.equals(sampledTarget,target)) { sampledTarget=target; reset(); }
+        var a = BoatSubjects.client(target,tick);
         var b = BoatSubjects.client(clip == null ? state.rival : clip.rival,tick);
         if (a == null) { status = "Waiting for the subject at this playhead."; reset(); return; }
         var settings = clip == null ? snapshot() : clip.settings;
+        if(!CameraModesCatalog.available(settings.mode())) { stop();return; }
+        if (!settings.equals(sampledSettings)) { reset(); sampledSettings = settings; }
         double shotTick=CameraModesCatalog.timed(settings.mode())?tick-(clip==null?startedTick:clip.start):tick;
         var next = desired(a,b,settings,shotTick,aspect());
         if (next == null) { status = "Two subjects must be present in the same dimension."; reset(); return; }
         if (!next.valid()) { status = "Waiting for valid subject motion."; reset(); return; }
-        shot = smooth(shot,next,tick-lastTick,settings.lag());
+        if (previousDesired != null && Math.hypot(Math.hypot(next.x()-previousDesired.x(),next.z()-previousDesired.z()),next.y()-previousDesired.y()) > 64) {
+            reset(); sampledSettings=settings;
+        }
+        if(CameraModesCatalog.uav(settings.mode())) {
+            uav=UavCameraModel.step(uav,previousDesired,next,a.x(),a.y()+CameraModeModel.aimHeight(BoatSubjects.eyeHeight(a)),a.z(),tick-lastTick,settings.lag());
+            shot=uav.view();
+        } else {
+            var damped = smooth(shot,previousDesired,next,tick-lastTick,settings.lag());
+            shot = CameraModesCatalog.fpv(settings.mode()) || CameraModesCatalog.pov(settings.mode())
+                ? new BoatCameraModel.Shot(next.x(),next.y(),next.z(),damped.yaw(),damped.pitch(),damped.roll(),next.fov())
+                : damped;
+        }
+        previousDesired = next;
         lastTick = tick;
-        var view = settings.collision() ? BoatSubjects.avoid(shot,a,settings.mode()==7?b:null) : shot;
+        var view = settings.collision() && !CameraModesCatalog.fpv(settings.mode()) ? BoatSubjects.avoid(shot,a,settings.mode()==7?b:null) : shot;
         if (!view.valid()) { status = "Waiting for a valid camera position."; reset(); return; }
         rendered=view;
+        if(CameraModesCatalog.pov(settings.mode()) || CameraModesCatalog.fpv(settings.mode())) {
+            mountedSubject=BoatSubjects.resolve(clip==null?state.target:clip.target);
+            mountedBody=a.entity()==null?null:a.entity().getUUID();
+        }
         applying = true;
         try {
             var handler = new MinecraftKeyframeHandler(mc);

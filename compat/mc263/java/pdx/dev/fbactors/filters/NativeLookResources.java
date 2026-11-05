@@ -9,6 +9,11 @@ import net.minecraft.client.Minecraft;
 
 final class NativeLookResources {
     private static PearlLookPipeline scene;
+    private static PearlLookPipeline events;
+    private static PearlLookPipeline eventPreviewPipeline;
+    private static GpuTexture eventTexture;
+    private static GpuTextureView eventView;
+    private static long eventHandle;
     private static GpuTexture atlas;
     private static GpuTextureView atlasView;
     private static long atlasHandle;
@@ -46,6 +51,33 @@ final class NativeLookResources {
     }
     private NativeLookResources() {}
 
+    static long eventPreview(java.util.Map<String,Float> uniforms,int width,int height) {
+        var device=RenderSystem.getDevice();
+        if(eventTexture==null || eventTexture.getWidth(0)!=width || eventTexture.getHeight(0)!=height) {
+            closeEventPreview();
+            eventTexture=device.createTexture("ICBM 3D preview",GpuTexture.USAGE_RENDER_ATTACHMENT|GpuTexture.USAGE_TEXTURE_BINDING|GpuTexture.USAGE_COPY_SRC,
+                GpuFormat.RGBA16_FLOAT,width,height,1,1);
+            eventView=device.createTextureView(eventTexture);eventPreviewPipeline=new PearlLookPipeline(device);
+            var renderer=com.moulberry.flashback.editor.ui.ReplayUI.imguiRenderer;
+            eventHandle=renderer.getTextureId(eventView);renderer.setSampleLinear(eventHandle);
+        }
+        eventPreviewPipeline.eventPreview(eventView,uniforms);return eventHandle;
+    }
+    static void closeEventPreview() {
+        if(eventPreviewPipeline!=null)eventPreviewPipeline.close();if(eventView!=null)eventView.close();if(eventTexture!=null)eventTexture.close();
+        eventPreviewPipeline=null;eventView=null;eventTexture=null;eventHandle=0;
+    }
+
+    static boolean renderEvent(java.util.Map<String,Float> uniforms) {
+        if(events==null)events=new PearlLookPipeline(RenderSystem.getDevice());
+        var target=FilterRenderBridge.target(Minecraft.getInstance());
+        if(target==null || target.width<=0 || target.height<=0 || target.getDepthTexture()==null)return false;
+        try(var depth=RenderSystem.getDevice().createTextureView(target.getDepthTexture())) {
+            events.renderEvent(target.getColorTexture(),target.getColorTextureView(),depth,uniforms);
+        }
+        return true;
+    }
+
     static boolean render(LookSettings look, float time) {
         if (scene == null) scene = new PearlLookPipeline(RenderSystem.getDevice());
         var target = FilterRenderBridge.target(Minecraft.getInstance());
@@ -81,6 +113,8 @@ final class NativeLookResources {
     }
 
     static void close() {
+        closeEventPreview();
+        if(events!=null)events.close();events=null;
         if (scene != null) scene.close();
         scene = null;
         closePreviews();closeCustom();

@@ -62,6 +62,7 @@ public class FlashbackActors implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ActorCommands.register();
+        pdx.dev.fbactors.events.EventAudio.install();
 
         pdx.dev.fbactors.emote.Emotes.install();
         pdx.dev.fbactors.gear.Gear.install();
@@ -90,6 +91,7 @@ public class FlashbackActors implements ClientModInitializer {
         });
         ClientTickEvents.END_CLIENT_TICK.register(client -> pdx.dev.fbactors.debug.ErrorRecovery.run("Actor client updates",() -> {
             pdx.dev.fbactors.debug.ErrorRecovery.run("Live camera follow",pdx.dev.fbactors.camera.BoatCam::clientTick);
+            pdx.dev.fbactors.events.EventAudio.clientTick();
             pdx.dev.fbactors.selftest.BoatStudioSelfTest.tick();
             pdx.dev.fbactors.selftest.BoatVisibilitySelfTest.tick();
 

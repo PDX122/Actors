@@ -1,0 +1,89 @@
+{
+  "source": "User-supplied ICBM sound archives",
+  "adaptation": "Ogg audio copied byte-for-byte. Namespace, gain, pitch and playback timing configured by the mod. Plane assets excluded.",
+  "files": {
+    "alert_klaxon": {
+      "archive": "icbm_sound_pack.zip",
+      "file": "icbm_sound_pack/ogg/icbm_alert_klaxon.ogg",
+      "sha256": "5ac1267120f62837d1eab5bd1212678d7092a9b05c78df2a14734d96812b3c19",
+      "fallback": "New Siren_6456981311 is missing; retained the earlier alert."
+    },
+    "silo_door_open": {
+      "archive": "icbm_audio_download.zip",
+      "file": "icbm_audio/Moving_2233170723.ogg",
+      "sha256": "99078f31a06de736240788e4a83b399879429121188155dd03f8b3ba72daff48",
+      "role_note": "Available silo launch mechanism movement replaces the missing hatch clips."
+    },
+    "launch": {
+      "archive": "icbm_audio_download.zip",
+      "file": "icbm_audio/Launch_3106177504.ogg",
+      "sha256": "95182721c673a2e3dc0c5339c01ce5e4c7aa40b622e7f5b7640f74203c53cb76"
+    },
+    "reentry_scream": {
+      "archive": "icbm_audio_download.zip",
+      "file": "icbm_audio/Incoming_6916316612.ogg",
+      "sha256": "8c1dd5eb231c027686e9ce3dc254f6d98bbd67f0cfd833d1164da900b50c4b53"
+    },
+    "detonation_close": {
+      "archive": "icbm_audio_download.zip",
+      "file": "icbm_audio/MainExplosion2_1391727615.ogg",
+      "sha256": "ad7afd9b8534a518919c5ee35c9a70cf2cff5c0d484df49c8874575dac0811e9"
+    },
+    "detonation_distant": {
+      "archive": "icbm_audio_download.zip",
+      "file": "icbm_audio/Explode_130768997.ogg",
+      "sha256": "e22df2b8647adb2757374c8f49425c87ab9103a503f748bf02751cd2584d4c9d"
+    },
+    "engine_sustain": {
+      "archive": "icbm_audio_download.zip",
+      "file": "icbm_audio/Launch_3106177504.ogg",
+      "sha256": "95182721c673a2e3dc0c5339c01ce5e4c7aa40b622e7f5b7640f74203c53cb76",
+      "role_note": "Available missile launch used for sustained boost; missing missile Engine_167570993 is not substituted with plane audio."
+    },
+    "stage_cap": {
+      "archive": "icbm_audio_download.zip",
+      "file": "icbm_audio/Cap_9057591742.ogg",
+      "sha256": "77f825efdc78869be8ae24799453298e8107898ea5703a67f04db55808c83248"
+    },
+    "stage_deploy": {
+      "archive": "icbm_audio_download.zip",
+      "file": "icbm_audio/Deploy_9056323321.ogg",
+      "sha256": "544c3c3256d6e21bf93bee2dfaaaab30cd87756f6e8dbb565438a66c1aa6c9ac"
+    },
+    "stage_clank": {
+      "archive": "icbm_audio_download.zip",
+      "file": "icbm_audio/Clank_3165576478.ogg",
+      "sha256": "b7ae64b964cc6b5e7a62d5d0d2df546d8cccf02bc8dadb671c1a6902f930f6cc"
+    },
+    "ignition": {
+      "archive": "icbm_audio_download.zip",
+      "file": "icbm_audio/Initiate_771710038.ogg",
+      "sha256": "2d6858eb924086a3f48162a4176ddc01dc0e3d6ff6f1605d464695ba0b4785ca"
+    },
+    "prepare_windup": {
+      "archive": "icbm_audio_download.zip",
+      "file": "icbm_audio/WindUp_5489013969.ogg",
+      "sha256": "0e265d44cfb38d2c865fdd492c65e92d161b2c7a2e1c15cf9295cc082ab97f41"
+    },
+    "prepare_stopped": {
+      "archive": "icbm_audio_download.zip",
+      "file": "icbm_audio/Stopped_2229031168.ogg",
+      "sha256": "7c26276628193462d7e89e8deb42c964030740e5d4c32444f6615b05451afdc7"
+    },
+    "impact_bass": {
+      "archive": "icbm_audio_download.zip",
+      "file": "icbm_audio/Bass_8406997653.ogg",
+      "sha256": "6ffae0d7ed4f5ef822857114f55e713bf5b63d028d979b4575faea9c770d4450"
+    },
+    "impact_crackle": {
+      "archive": "icbm_audio_download.zip",
+      "file": "icbm_audio/Crackling_8234114045.ogg",
+      "sha256": "65222054e39d34ee4c9f28791454186f2d58f4dfa9e39a0144566a6ea7e0b11f"
+    },
+    "impact_wind": {
+      "archive": "icbm_audio_download.zip",
+      "file": "icbm_audio/Wind2_5113213873.ogg",
+      "sha256": "4b7fe352545a7b151cb8d4321dd0581e23371b6e85cfcd3e3ba7e821ab1ee6c0"
+    }
+  }
+}

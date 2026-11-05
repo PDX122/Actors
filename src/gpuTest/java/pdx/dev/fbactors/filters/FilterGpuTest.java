@@ -98,7 +98,7 @@ class FilterGpuTest {
                     assertEquals(0.75f, output.get(i * 4 + 3), 0.002f, entry.id());
                 }
                 assertTrue(total > 1, entry.id());
-                boolean expanded = java.util.Set.of("cinema_35mm", "noir", "desert_chrome", "moonlight", "cel_shade", "halftone", "crosshatch", "risograph", "night_vision", "infrared", "duotone", "solarize", "arcade", "selective_red", "neon_wire", "pixel_sort", "codec_smear", "signal_rot", "bitcrush", "anamorphic").contains(entry.id());
+                boolean expanded = java.util.Set.of("cinema_35mm", "noir", "desert_chrome", "moonlight", "cel_shade", "halftone", "crosshatch", "risograph", "night_vision", "infrared", "duotone", "solarize", "arcade", "selective_red", "neon_wire", "pixel_sort", "codec_smear", "signal_rot", "bitcrush", "anamorphic", "circuit_scan", "plasma_field", "spectral_echo", "data_vortex", "hex_shield", "kaleidoscope", "fpv_analog", "action_camera", "fpv_digital", "uav_feed").contains(entry.id());
                 if (expanded) assertTrue(difference / (w * h * 3) > 0.015, entry.id() + " must visibly change the source at its default settings");
                 {
                     BufferedImage image = image(output, w, h);
@@ -122,6 +122,8 @@ class FilterGpuTest {
                             for (int c = 0; c < 3; c++) assertTrue(Float.isFinite(output.get(i * 4 + c)), entry.id() + " " + param.id());
                             assertEquals(0.75f, output.get(i * 4 + 3), 0.002f, entry.id());
                         }
+                        if(entry.category().equals("Camera") && param.id().equals("Amount") && bound==0)
+                            for(int i=0;i<pixels.limit();i++) assertEquals(pixels.get(i),output.get(i),.001f,entry.id());
                         assertEquals(GL11.GL_NO_ERROR, GL11.glGetError(), entry.id());
                     }
                     look.intensity = 0;
